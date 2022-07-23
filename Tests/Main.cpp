@@ -11,6 +11,8 @@ try
 {
 	auto pInstance = minte::CreateInstance();
 	auto hud = HeadsUpDisplay(pInstance);
+
+	while (true) hud.update();
 }
 catch (std::runtime_error& error)
 {

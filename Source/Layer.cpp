@@ -1,6 +1,7 @@
 // Copyright (c) 2022 Dhiraj Wishal
 
 #include "Minte/Layer.hpp"
+#include "Minte/FrontendError.hpp"
 
 #include "VulkanBackend/VulkanRenderTarget.hpp"
 
@@ -12,4 +13,14 @@ namespace minte
 		, m_pRenderTarget(std::make_unique<VulkanRenderTarget>(std::static_pointer_cast<VulkanInstance>(pInstance), width, height))
 	{
 	}
+
+	void Layer::update()
+	{
+		// We need to update only if the frontend is valid.
+		if (isValid())
+		{
+			m_pRenderTarget->draw();
+		}
+	}
+
 }

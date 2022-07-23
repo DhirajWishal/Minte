@@ -52,6 +52,12 @@ namespace minte
 				return Element(std::forward<Arguments>(arguments)...);
 		}
 
+		/**
+		 * Update the layer.
+		 * This will first draw all the UI elements and then handle inputs.
+		 */
+		void update();
+
 	private:
 		Rectangle2D m_Rectangle = {};
 		std::unique_ptr<backend::RenderTarget> m_pRenderTarget = nullptr;

@@ -20,8 +20,11 @@ namespace minte
 			VkImage m_Image = VK_NULL_HANDLE;
 			VkImageView m_ImageView = VK_NULL_HANDLE;
 
-			VmaAllocation m_Allocation = nullptr;
+			VmaAllocation m_ImageAllocation = nullptr;
 			VkImageLayout m_CurrentLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+
+			VkBuffer m_Buffer = VK_NULL_HANDLE;
+			VmaAllocation m_BufferAllocation = nullptr;
 		};
 
 	public:
@@ -38,6 +41,11 @@ namespace minte
 		 * Destructor.
 		 */
 		~VulkanRenderTarget() override;
+
+		/**
+		 * Draw all the entities that are bound to the render target.
+		 */
+		void draw() override;
 
 	private:
 		/**
@@ -60,20 +68,35 @@ namespace minte
 		void destroyAttachment(const VulkanAttachment& attachment) const;
 
 		/**
-		 * Create the render pass.
+		 * Setup the render pass.
 		 */
-		void createRenderPass();
+		void setupRenderPass();
 
 		/**
-		 * Create the frame buffer.
+		 * Setup the frame buffer.
 		 */
-		void createFramebuffer();
+		void setupFramebuffer();
+
+		/**
+		 * Setup the command pool and buffer.
+		 */
+		void setupCommandBuffer();
+
+		/**
+		 * Wait for the fence to finish execution.
+		 */
+		void waitForFence() const;
 
 	private:
-		VulkanAttachment m_ColorAttachment = {};
-		VulkanAttachment m_DepthAttachment = {};
+		VulkanAttachment m_ColorAttachment = {};	// The color attachment.
+		VulkanAttachment m_EntityAttachment = {};	// This contains the entity IDs of all the drawn entities.
+		VulkanAttachment m_DepthAttachment = {};	// The depth attachment.
 
 		VkRenderPass m_RenderPass = VK_NULL_HANDLE;
 		VkFramebuffer m_Framebuffer = VK_NULL_HANDLE;
+
+		VkCommandPool m_CommandPool = VK_NULL_HANDLE;
+		VkCommandBuffer m_CommandBuffer = VK_NULL_HANDLE;
+		VkFence m_Fence = VK_NULL_HANDLE;
 	};
 }

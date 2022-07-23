@@ -57,6 +57,40 @@ namespace minte
 		 */
 		[[nodiscard]] VmaAllocator getAllocator() const { return m_Allocator; }
 
+		/**
+		 * Get the graphics queue.
+		 *
+		 * @return The queue.
+		 */
+		[[nodiscard]] VulaknQueue getGraphicsQueue() const { return m_GraphicsQueue; }
+
+		/**
+		 * Get the transfer queue.
+		 *
+		 * @return The queue.
+		 */
+		[[nodiscard]] VulaknQueue getTransferQueue() const { return m_TransferQueue; }
+
+		/**
+		 * Get the compute queue.
+		 *
+		 * @return The queue.
+		 */
+		[[nodiscard]] VulaknQueue getComputeQueue() const { return m_ComputeQueue; }
+
+		/**
+		 * Change the image layout of an image.
+		 *
+		 * @param commandBuffer The command buffer to record all the commands.
+		 * @param image The image to change the layout of.
+		 * @param currentLayout The current layout of the image.
+		 * @param newLayout The new layout to change to.
+		 * @param aspectFlags The image aspect flags.
+		 * @param mipLevels The image mip levels. Default is 1.
+		 * @param layers The image layers. Default is 1.
+		 */
+		void changeImageLayout(VkCommandBuffer commandBuffer, VkImage image, VkImageLayout currentLayout, VkImageLayout newLayout, VkImageAspectFlags aspectFlags, uint32_t mipLevels = 1, uint32_t layers = 1) const;
+
 	private:
 		/**
 		 * Setup the instance.

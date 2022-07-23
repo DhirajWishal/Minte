@@ -30,8 +30,13 @@ namespace minte
 			virtual ~RenderTarget() = default;
 
 			/**
+			 * Draw all the entities that are bound to the render target.
+			 */
+			virtual void draw() = 0;
+
+			/**
 			 * Get the width of the render target.
-			 * 
+			 *
 			 * @return The width.
 			 */
 			[[nodiscard]] uint32_t getWidth() const { return m_Width; }
