@@ -87,7 +87,7 @@ namespace /* anonymous */
 	{
 		// Get the queue family count.
 		uint32_t queueFamilyCount = 0;
-		vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, nullptr);
+		vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, VK_NULL_HANDLE);
 
 		// Validate if we have queue families.
 		if (queueFamilyCount == 0)
@@ -122,7 +122,7 @@ namespace /* anonymous */
 	{
 		// Get the queue family count.
 		uint32_t queueFamilyCount = 0;
-		vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, nullptr);
+		vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, VK_NULL_HANDLE);
 
 		// Validate if we have queue families.
 		if (queueFamilyCount == 0)
@@ -161,11 +161,11 @@ namespace /* anonymous */
 
 		// Get the extension count.
 		uint32_t extensionCount = 0;
-		MINTE_VK_ASSERT(vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &extensionCount, nullptr), "Failed to enumerate physical device extension property count!");
+		MINTE_VK_ASSERT(vkEnumerateDeviceExtensionProperties(physicalDevice, VK_NULL_HANDLE, &extensionCount, VK_NULL_HANDLE), "Failed to enumerate physical device extension property count!");
 
 		// Load the extensions.
 		std::vector<VkExtensionProperties> availableExtensions(extensionCount);
-		MINTE_VK_ASSERT(vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &extensionCount, availableExtensions.data()), "Failed to enumerate physical device extension properties!");
+		MINTE_VK_ASSERT(vkEnumerateDeviceExtensionProperties(physicalDevice, VK_NULL_HANDLE, &extensionCount, availableExtensions.data()), "Failed to enumerate physical device extension properties!");
 
 		std::set<std::string_view> requiredExtensions(deviceExtensions.begin(), deviceExtensions.end());
 
@@ -219,8 +219,6 @@ namespace minte
 		createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
 		createInfo.pApplicationInfo = &applicationInfo;
 
-		std::vector<const char*> requiredExtensions;
-
 #ifdef MINTE_DEBUG
 		// Emplace the required validation layer.
 		m_ValidationLayers.emplace_back("VK_LAYER_KHRONOS_validation");
@@ -233,16 +231,17 @@ namespace minte
 		createInfo.ppEnabledLayerNames = m_ValidationLayers.data();
 		createInfo.pNext = &debugMessengerCreateInfo;
 
-		requiredExtensions.emplace_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+		const std::vector<const char*> requiredExtensions = { VK_EXT_DEBUG_UTILS_EXTENSION_NAME };
+		createInfo.enabledExtensionCount = static_cast<uint32_t>(requiredExtensions.size());
+		createInfo.ppEnabledExtensionNames = requiredExtensions.data();
 
 #else
 		createInfo.enabledLayerCount = 0;
 		createInfo.pNext = VK_NULL_HANDLE;
+		createInfo.enabledExtensionCount = 0;
+		createInfo.ppEnabledExtensionNames = VK_NULL_HANDLE;
 
 #endif
-
-		createInfo.enabledExtensionCount = static_cast<uint32_t>(requiredExtensions.size());
-		createInfo.ppEnabledExtensionNames = requiredExtensions.data();
 
 		// Create the instance.
 		MINTE_VK_ASSERT(vkCreateInstance(&createInfo, VK_NULL_HANDLE, &m_Instance), "Failed to create the instance!");

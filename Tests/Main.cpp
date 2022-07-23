@@ -2,10 +2,13 @@
 
 #include "Minte/Instance.hpp"
 
+#include "Layers/HeadsUpDisplay.hpp"
+
 auto main(int argc, char** argv) -> int
 try
 {
-	auto pMinte = minte::CreateInstance();
+	auto pInstance = minte::CreateInstance();
+	auto hud = HeadsUpDisplay(pInstance);
 }
 catch (...)
 {

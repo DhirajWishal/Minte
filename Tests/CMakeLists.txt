@@ -12,6 +12,9 @@ add_executable(
 	MinteTests
 
 	"Main.cpp"
+
+	"Layers/HeadsUpDisplay.hpp"
+	"Layers/HeadsUpDisplay.cpp"
 )
 
 # Add the optick static library as a target link.

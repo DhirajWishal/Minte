@@ -15,6 +15,9 @@ add_library(
 	"${CMAKE_SOURCE_DIR}/Include/Minte/BackendError.hpp"
 	"${CMAKE_SOURCE_DIR}/Include/Minte/DataTypes.hpp"
 	"${CMAKE_SOURCE_DIR}/Include/Minte/Instance.hpp"
+	"${CMAKE_SOURCE_DIR}/Include/Minte/Layer.hpp"
+	"${CMAKE_SOURCE_DIR}/Include/Minte/Drawable.hpp"
+	"${CMAKE_SOURCE_DIR}/Include/Minte/InstanceBoundObject.hpp"
 
 	"Instance.cpp"
 
