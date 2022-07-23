@@ -6,13 +6,16 @@
 
 namespace minte
 {
-	/**
-	 * Backend error class.
-	 * This class is thrown if the backend encountered any errors.
-	 */
-	class BackendError final : public std::runtime_error
+	namespace backend
 	{
-	public:
-		using std::runtime_error::runtime_error;
-	};
+		/**
+		 * Backend error class.
+		 * This class is thrown if the backend encountered any errors.
+		 */
+		class BackendError final : public std::runtime_error
+		{
+		public:
+			using std::runtime_error::runtime_error;
+		};
+	}
 }

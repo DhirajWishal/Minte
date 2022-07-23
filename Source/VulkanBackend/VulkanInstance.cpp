@@ -91,7 +91,7 @@ namespace /* anonymous */
 
 		// Validate if we have queue families.
 		if (queueFamilyCount == 0)
-			throw minte::BackendError("Failed to get the queue family property count!");
+			throw minte::backend::BackendError("Failed to get the queue family property count!");
 
 		// Get the queue family properties.
 		std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
@@ -126,7 +126,7 @@ namespace /* anonymous */
 
 		// Validate if we have queue families.
 		if (queueFamilyCount == 0)
-			throw minte::BackendError("Failed to get the queue family property count!");
+			throw minte::backend::BackendError("Failed to get the queue family property count!");
 
 		// Get the queue family properties.
 		std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
@@ -265,7 +265,7 @@ namespace minte
 
 		// Throw an error if there are no physical devices available.
 		if (deviceCount == 0)
-			throw BackendError("No physical devices found!");
+			throw backend::BackendError("No physical devices found!");
 
 		std::vector<VkPhysicalDevice> candidates(deviceCount);
 		MINTE_VK_ASSERT(vkEnumeratePhysicalDevices(m_Instance, &deviceCount, candidates.data()), "Failed to enumerate physical devices.");
@@ -331,7 +331,7 @@ namespace minte
 
 		// Throw and error if a physical device was not found.
 		if (m_PhysicalDevice == VK_NULL_HANDLE)
-			throw BackendError("Failed to find a suitable physical device!");
+			throw backend::BackendError("Failed to find a suitable physical device!");
 
 		// Setup device queues.
 		constexpr float priority = 1.0f;
