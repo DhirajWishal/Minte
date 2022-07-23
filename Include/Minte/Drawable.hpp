@@ -24,5 +24,10 @@ namespace minte
 		 * @param pInstance The instance pointer.
 		 */
 		explicit Drawable(const std::shared_ptr<Instance>& pInstance) : InstanceBoundObject(pInstance) {}
+
+		/**
+		 * Default virtual destructor.
+		 */
+		virtual ~Drawable() = default;
 	};
 }

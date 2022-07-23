@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "InstanceBoundObject.hpp"
+#include "Backend/RenderTarget.hpp"
 #include "DataTypes.hpp"
 
 namespace minte
@@ -29,25 +29,31 @@ namespace minte
 		explicit Layer(const std::shared_ptr<Instance>& pInstance, uint32_t width, uint32_t height) : InstanceBoundObject(pInstance), m_Rectangle(Point2D_UI32(0), Point2D_UI32(width, height)) {}
 
 		/**
+		 * Default virtual destructor.
+		 */
+		virtual ~Layer() = default;
+
+		/**
 		 * Create a new element to this layer.
 		 * If the element is derived from InstanceBoundObject, the instance pointer will be provided.
 		 *
 		 * @tparam Element The element type.
-		 * @tparam Args The constructor arguments.
+		 * @tparam Arguments The constructor arguments.
 		 * @param arguments The arguments required by the Element's constructor.
 		 * @return The created element.
 		 */
-		template<class Element, class... Args>
-		[[nodiscard]] Element createElement(Args&&... arguments)
+		template<class Element, class... Arguments>
+		[[nodiscard]] Element createElement(Arguments&&... arguments)
 		{
 			if constexpr (std::is_base_of_v<InstanceBoundObject, Element>)
-				return Element(getInstancePointer(), std::forward<Args>(arguments)...);
+				return Element(getInstancePointer(), std::forward<Arguments>(arguments)...);
 
 			else
-				return Element(std::forward<Args>(arguments)...);
+				return Element(std::forward<Arguments>(arguments)...);
 		}
 
 	private:
 		Rectangle2D m_Rectangle = {};
+		std::unique_ptr<backend::RenderTarget> m_pRenderTarget = nullptr;
 	};
 }

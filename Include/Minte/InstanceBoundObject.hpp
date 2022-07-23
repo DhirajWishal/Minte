@@ -28,11 +28,16 @@ namespace minte
 		explicit InstanceBoundObject(const std::shared_ptr<Instance>& pInstance) : m_pInstance(pInstance) {}
 
 		/**
+		 * Default virtual destructor.
+		 */
+		virtual ~InstanceBoundObject() = default;
+
+		/**
 		 * Check if the object is valid or not.
 		 *
 		 * @return true if valid, false if not.
 		 */
-		[[nodsicard]] bool isValid() const noexcept { return m_pInstance; }
+		[[nodsicard]] bool isValid() const noexcept { return m_pInstance != nullptr; }
 
 		/**
 		 * Get the raw instance pointer.

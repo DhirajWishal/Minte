@@ -12,7 +12,9 @@ add_library(
 	Minte
 	STATIC
 
-	"${CMAKE_SOURCE_DIR}/Include/Minte/BackendError.hpp"
+	"${CMAKE_SOURCE_DIR}/Include/Minte/Backend/RenderTarget.hpp"
+	"${CMAKE_SOURCE_DIR}/Include/Minte/Backend/BackendError.hpp"
+
 	"${CMAKE_SOURCE_DIR}/Include/Minte/DataTypes.hpp"
 	"${CMAKE_SOURCE_DIR}/Include/Minte/Instance.hpp"
 	"${CMAKE_SOURCE_DIR}/Include/Minte/Layer.hpp"
