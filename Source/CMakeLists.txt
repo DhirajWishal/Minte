@@ -22,11 +22,16 @@ add_library(
 	"${CMAKE_SOURCE_DIR}/Include/Minte/InstanceBoundObject.hpp"
 
 	"Instance.cpp"
+	"Layer.cpp"
 
 	# Vulkan backend
 	"VulkanBackend/VulkanInstance.hpp"
 	"VulkanBackend/VulkanInstance.cpp"
 	"VulkanBackend/VulkanMacros.hpp"
+	"VulkanBackend/VulkanRenderTarget.hpp"
+	"VulkanBackend/VulkanRenderTarget.cpp"
+
+	"VulkanBackend/vk_mem_alloc.cpp"
 )
 
 # Set the include directories.

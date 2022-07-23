@@ -26,7 +26,7 @@ namespace minte
 		 * @param width The width of the rectangle.
 		 * @param height The height of the rectangle.
 		 */
-		explicit Layer(const std::shared_ptr<Instance>& pInstance, uint32_t width, uint32_t height) : InstanceBoundObject(pInstance), m_Rectangle(Point2D_UI32(0), Point2D_UI32(width, height)) {}
+		explicit Layer(const std::shared_ptr<Instance>& pInstance, uint32_t width, uint32_t height);
 
 		/**
 		 * Default virtual destructor.

@@ -7,6 +7,8 @@
 #include <array>
 #include <set>
 
+constexpr uint32_t VulkanVersion = VK_API_VERSION_1_3;
+
 namespace /* anonymous */
 {
 	/**
@@ -187,10 +189,12 @@ namespace minte
 
 		setupInstance();
 		setupDevice();
+		setupAllocator();
 	}
 
 	VulkanInstance::~VulkanInstance()
 	{
+		vmaDestroyAllocator(m_Allocator);
 		vkDestroyDevice(m_LogicalDevice, VK_NULL_HANDLE);
 
 #ifdef MINTE_DEBUG
@@ -208,9 +212,9 @@ namespace minte
 		VkApplicationInfo applicationInfo = {};
 		applicationInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
 		applicationInfo.pNext = VK_NULL_HANDLE;
-		applicationInfo.apiVersion = VK_API_VERSION_1_3;
-		applicationInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
-		applicationInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
+		applicationInfo.apiVersion = VulkanVersion;
+		applicationInfo.applicationVersion = VK_MAKE_API_VERSION(1, 0, 0, 0);
+		applicationInfo.engineVersion = VK_MAKE_API_VERSION(1, 0, 0, 0);
 		applicationInfo.pApplicationName = "Minte";
 		applicationInfo.pEngineName = "Lamiaceae";	// Mentha is a genus of plants in the family Lamiaceae.
 
@@ -259,6 +263,8 @@ namespace minte
 
 	void VulkanInstance::setupDevice()
 	{
+		const std::vector<const char*> deviceExtensions = { VK_KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME };
+
 		// Enumerate physical devices.
 		uint32_t deviceCount = 0;
 		MINTE_VK_ASSERT(vkEnumeratePhysicalDevices(m_Instance, &deviceCount, VK_NULL_HANDLE), "Failed to enumerate physical devices.");
@@ -277,7 +283,8 @@ namespace minte
 		for (const auto& candidate : candidates)
 		{
 			// Check if the device is suitable for our use.
-			if (CheckQueueSupport(candidate, VK_QUEUE_GRAPHICS_BIT) &&
+			if (CheckDeviceExtensionSupport(candidate, deviceExtensions) &&
+				CheckQueueSupport(candidate, VK_QUEUE_GRAPHICS_BIT) &&
 				CheckQueueSupport(candidate, VK_QUEUE_COMPUTE_BIT) &&
 				CheckQueueSupport(candidate, VK_QUEUE_TRANSFER_BIT))
 			{
@@ -358,10 +365,10 @@ namespace minte
 
 		// Setup all the required features.
 		VkPhysicalDeviceFeatures features = {};
-		features.samplerAnisotropy = VK_TRUE;
-		features.sampleRateShading = VK_TRUE;
-		features.tessellationShader = VK_TRUE;
-		features.geometryShader = VK_TRUE;
+		// features.samplerAnisotropy = VK_TRUE;
+		// features.sampleRateShading = VK_TRUE;
+		// features.tessellationShader = VK_TRUE;
+		// features.geometryShader = VK_TRUE;
 
 		// Setup the device create info.
 		VkDeviceCreateInfo deviceCreateInfo = {};
@@ -372,8 +379,8 @@ namespace minte
 		deviceCreateInfo.pQueueCreateInfos = queueCreateInfos.data();
 		deviceCreateInfo.enabledLayerCount = 0;
 		deviceCreateInfo.ppEnabledLayerNames = VK_NULL_HANDLE;
-		deviceCreateInfo.enabledExtensionCount = 0;
-		deviceCreateInfo.ppEnabledExtensionNames = VK_NULL_HANDLE;
+		deviceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size());
+		deviceCreateInfo.ppEnabledExtensionNames = deviceExtensions.data();
 		deviceCreateInfo.pEnabledFeatures = &features;
 
 #ifdef MINTE_DEBUG
@@ -395,4 +402,47 @@ namespace minte
 		m_DeviceTable.vkGetDeviceQueue(m_LogicalDevice, m_TransferQueue.m_Family, 0, &m_TransferQueue.m_Queue);
 	}
 
+	void VulkanInstance::setupAllocator()
+	{
+		// Setup the Vulkan functions needed by VMA.
+		VmaVulkanFunctions functions = {};
+		functions.vkGetInstanceProcAddr = vkGetInstanceProcAddr;
+		functions.vkGetDeviceProcAddr = vkGetDeviceProcAddr;
+		functions.vkGetPhysicalDeviceProperties = vkGetPhysicalDeviceProperties;
+		functions.vkGetPhysicalDeviceMemoryProperties = vkGetPhysicalDeviceMemoryProperties;
+		functions.vkAllocateMemory = m_DeviceTable.vkAllocateMemory;
+		functions.vkFreeMemory = m_DeviceTable.vkFreeMemory;
+		functions.vkMapMemory = m_DeviceTable.vkMapMemory;
+		functions.vkUnmapMemory = m_DeviceTable.vkUnmapMemory;
+		functions.vkFlushMappedMemoryRanges = m_DeviceTable.vkFlushMappedMemoryRanges;
+		functions.vkInvalidateMappedMemoryRanges = m_DeviceTable.vkInvalidateMappedMemoryRanges;
+		functions.vkBindBufferMemory = m_DeviceTable.vkBindBufferMemory;
+		functions.vkBindImageMemory = m_DeviceTable.vkBindImageMemory;
+		functions.vkGetBufferMemoryRequirements = m_DeviceTable.vkGetBufferMemoryRequirements;
+		functions.vkGetImageMemoryRequirements = m_DeviceTable.vkGetImageMemoryRequirements;
+		functions.vkCreateBuffer = m_DeviceTable.vkCreateBuffer;
+		functions.vkDestroyBuffer = m_DeviceTable.vkDestroyBuffer;
+		functions.vkCreateImage = m_DeviceTable.vkCreateImage;
+		functions.vkDestroyImage = m_DeviceTable.vkDestroyImage;
+		functions.vkCmdCopyBuffer = m_DeviceTable.vkCmdCopyBuffer;
+		functions.vkGetBufferMemoryRequirements2KHR = m_DeviceTable.vkGetBufferMemoryRequirements2KHR;
+		functions.vkGetImageMemoryRequirements2KHR = m_DeviceTable.vkGetImageMemoryRequirements2KHR;
+		functions.vkBindBufferMemory2KHR = m_DeviceTable.vkBindBufferMemory2KHR;
+		functions.vkBindImageMemory2KHR = m_DeviceTable.vkBindImageMemory2KHR;
+		functions.vkGetPhysicalDeviceMemoryProperties2KHR = vkGetPhysicalDeviceMemoryProperties2KHR;
+		functions.vkGetDeviceBufferMemoryRequirements = m_DeviceTable.vkGetDeviceBufferMemoryRequirements;
+		functions.vkGetDeviceImageMemoryRequirements = m_DeviceTable.vkGetDeviceImageMemoryRequirements;
+
+		// Setup create info.
+		VmaAllocatorCreateInfo createInfo = {};
+		// createInfo.flags = VMA_ALLOCATOR_CREATE_EXTERNALLY_SYNCHRONIZED_BIT;
+		createInfo.flags = 0;
+		createInfo.physicalDevice = m_PhysicalDevice;
+		createInfo.device = m_LogicalDevice;
+		createInfo.pVulkanFunctions = &functions;
+		createInfo.instance = m_Instance;
+		createInfo.vulkanApiVersion = VulkanVersion;
+
+		MINTE_VK_ASSERT(vmaCreateAllocator(&createInfo, &m_Allocator), "Failed to create the allocator!");
+	}
 }

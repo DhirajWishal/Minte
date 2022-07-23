@@ -5,6 +5,7 @@
 #include "Minte/Instance.hpp"
 
 #include <volk.h>
+#include <vk_mem_alloc.h>
 
 #include <vector>
 
@@ -35,6 +36,27 @@ namespace minte
 		 */
 		~VulkanInstance() override;
 
+		/**
+		 * Get the logical device.
+		 *
+		 * @return The logical device.
+		 */
+		[[nodsicard]] VkDevice getLogicalDevice() const { return m_LogicalDevice; }
+
+		/**
+		 * Get the device table.
+		 *
+		 * @return The device table.
+		 */
+		[[nodiscard]] const VolkDeviceTable& getDeviceTable() const { return m_DeviceTable; }
+
+		/**
+		 * Get the memory allocator.
+		 *
+		 * @return The allocator.
+		 */
+		[[nodiscard]] VmaAllocator getAllocator() const { return m_Allocator; }
+
 	private:
 		/**
 		 * Setup the instance.
@@ -45,6 +67,11 @@ namespace minte
 		 * Setup the device(s).
 		 */
 		void setupDevice();
+
+		/**
+		 * Setup the allocator.
+		 */
+		void setupAllocator();
 
 	private:
 		VkPhysicalDeviceProperties m_PhysicalDeviceProperties = {};
@@ -58,6 +85,8 @@ namespace minte
 
 		VkDevice m_LogicalDevice = VK_NULL_HANDLE;
 		VkPhysicalDevice m_PhysicalDevice = VK_NULL_HANDLE;
+
+		VmaAllocator m_Allocator = nullptr;
 
 		VulaknQueue m_GraphicsQueue = {};
 		VulaknQueue m_TransferQueue = {};
