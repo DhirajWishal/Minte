@@ -5,16 +5,40 @@
 
 #include <array>
 
+namespace /* anonymous */
+{
+	/**
+	 * Get the Vulkan sample count from the anti-aliasing value.
+	 *
+	 * @param antiAliasing The anti-aliasing value.
+	 * @return The sample count.
+	 */
+	VkSampleCountFlagBits GetSampleCount(minte::backend::AntiAliasing antiAliasing)
+	{
+		switch (antiAliasing)
+		{
+		case minte::backend::AntiAliasing::X1:		return VK_SAMPLE_COUNT_1_BIT;
+		case minte::backend::AntiAliasing::X2:		return VK_SAMPLE_COUNT_2_BIT;
+		case minte::backend::AntiAliasing::X4:		return VK_SAMPLE_COUNT_4_BIT;
+		case minte::backend::AntiAliasing::X8:		return VK_SAMPLE_COUNT_8_BIT;
+		case minte::backend::AntiAliasing::X16:		return VK_SAMPLE_COUNT_16_BIT;
+		case minte::backend::AntiAliasing::X32:		return VK_SAMPLE_COUNT_32_BIT;
+		case minte::backend::AntiAliasing::X64:		return VK_SAMPLE_COUNT_64_BIT;
+		default:									throw minte::backend::BackendError("Invalid Anti-Aliasing value!");
+		}
+	}
+}
+
 namespace minte
 {
 	namespace backend
 	{
-		VulkanRenderTarget::VulkanRenderTarget(const std::shared_ptr<VulkanInstance>& pInstance, uint32_t width, uint32_t height)
-			: backend::RenderTarget(pInstance, width, height)
+		VulkanRenderTarget::VulkanRenderTarget(const std::shared_ptr<VulkanInstance>& pInstance, uint32_t width, uint32_t height, AntiAliasing antiAliasing /*= AntiAliasing::X1*/)
+			: backend::RenderTarget(pInstance, width, height, antiAliasing)
 		{
-			m_ColorAttachment = createAttachment(VK_FORMAT_R8G8B8A8_UNORM, VK_SAMPLE_COUNT_1_BIT, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT);
-			m_EntityAttachment = createAttachment(VK_FORMAT_R32_SFLOAT, VK_SAMPLE_COUNT_1_BIT, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT);
-			m_DepthAttachment = createAttachment(VK_FORMAT_D16_UNORM, VK_SAMPLE_COUNT_1_BIT, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_ASPECT_DEPTH_BIT);
+			m_ColorAttachment = createAttachment(VK_FORMAT_R8G8B8A8_UNORM, GetSampleCount(antiAliasing), VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT);
+			m_EntityAttachment = createAttachment(VK_FORMAT_R32_SFLOAT, GetSampleCount(antiAliasing), VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT);
+			m_DepthAttachment = createAttachment(VK_FORMAT_D16_UNORM, GetSampleCount(antiAliasing), VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_ASPECT_DEPTH_BIT);
 
 			setupRenderPass();
 			setupFramebuffer();
@@ -145,7 +169,7 @@ namespace minte
 			// Color attachment.
 			attachmentDescriptions[0].flags = 0;
 			attachmentDescriptions[0].format = VK_FORMAT_R8G8B8A8_UNORM;
-			attachmentDescriptions[0].samples = VK_SAMPLE_COUNT_1_BIT;	// TODO
+			attachmentDescriptions[0].samples = GetSampleCount(getAntiAliasing());
 			attachmentDescriptions[0].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 			attachmentDescriptions[0].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 			attachmentDescriptions[0].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
@@ -159,7 +183,7 @@ namespace minte
 			// Entity attachment.
 			attachmentDescriptions[1].flags = 0;
 			attachmentDescriptions[1].format = VK_FORMAT_R32_SFLOAT;
-			attachmentDescriptions[1].samples = VK_SAMPLE_COUNT_1_BIT;	// TODO
+			attachmentDescriptions[1].samples = GetSampleCount(getAntiAliasing());
 			attachmentDescriptions[1].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 			attachmentDescriptions[1].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 			attachmentDescriptions[1].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
@@ -173,7 +197,7 @@ namespace minte
 			// Depth attachment.
 			attachmentDescriptions[2].flags = 0;
 			attachmentDescriptions[2].format = VK_FORMAT_D16_UNORM;
-			attachmentDescriptions[2].samples = VK_SAMPLE_COUNT_1_BIT;	// TODO
+			attachmentDescriptions[2].samples = GetSampleCount(getAntiAliasing());
 			attachmentDescriptions[2].loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 			attachmentDescriptions[2].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 			attachmentDescriptions[2].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;

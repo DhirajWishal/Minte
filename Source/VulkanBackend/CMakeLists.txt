@@ -15,9 +15,11 @@ add_library(
 	"${CMAKE_SOURCE_DIR}/Include/VulkanBackend/VulkanInstance.hpp"
 	"${CMAKE_SOURCE_DIR}/Include/VulkanBackend/VulkanMacros.hpp"
 	"${CMAKE_SOURCE_DIR}/Include/VulkanBackend/VulkanRenderTarget.hpp"
+	"${CMAKE_SOURCE_DIR}/Include/VulkanBackend/VulkanWindow.hpp"
 	
 	"VulkanInstance.cpp"
 	"VulkanRenderTarget.cpp"
+	"VulkanWindow.cpp"
 
 	"vk_mem_alloc.cpp"
 )
@@ -29,10 +31,11 @@ target_include_directories(
 	PUBLIC ${VULKAN_HEADERS_INCLUDE_DIR} 
 	PUBLIC ${VOLK_INCLUDE_DIR} 
 	PUBLIC ${VMA_INCLUDE_DIR} 
+	PUBLIC ${SDL_INCLUDE_DIR}
 )
 
 # Add the target links.
-target_link_libraries(MinteVulkanBackend volk)
+target_link_libraries(MinteVulkanBackend volk SDL2)
 
 # Make sure to specify the C++ standard to C++20.
 set_property(TARGET MinteVulkanBackend PROPERTY CXX_STANDARD 20)

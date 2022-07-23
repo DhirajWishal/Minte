@@ -36,8 +36,9 @@ namespace minte
 			 * @param pInstance The Vulkan instance pointer.
 			 * @param width The width of the render target.
 			 * @param height The height of the render target.
+			 * @param antiAliasing The anti aliasing to use. Default is x1.
 			 */
-			explicit VulkanRenderTarget(const std::shared_ptr<VulkanInstance>& pInstance, uint32_t width, uint32_t height);
+			explicit VulkanRenderTarget(const std::shared_ptr<VulkanInstance>& pInstance, uint32_t width, uint32_t height, AntiAliasing antiAliasing = AntiAliasing::X1);
 
 			/**
 			 * Destructor.

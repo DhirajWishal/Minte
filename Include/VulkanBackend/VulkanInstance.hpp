@@ -39,11 +39,25 @@ namespace minte
 			~VulkanInstance() override;
 
 			/**
+			 * Get the instance.
+			 *
+			 * @return The instance.
+			 */
+			[[nodiscard]] VkInstance getInstance() const { return m_Instance; }
+
+			/**
 			 * Get the logical device.
 			 *
 			 * @return The logical device.
 			 */
 			[[nodsicard]] VkDevice getLogicalDevice() const { return m_LogicalDevice; }
+
+			/**
+			 * Get the physical device.
+			 *
+			 * @return The physical device.
+			 */
+			[[nodsicard]] VkPhysicalDevice getPhysicalDevice() const { return m_PhysicalDevice; }
 
 			/**
 			 * Get the device table.
