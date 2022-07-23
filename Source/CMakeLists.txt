@@ -12,6 +12,7 @@ add_library(
 	Minte
 	STATIC
 
+	"${CMAKE_SOURCE_DIR}/Include/Minte/BackendError.hpp"
 	"${CMAKE_SOURCE_DIR}/Include/Minte/DataTypes.hpp"
 	"${CMAKE_SOURCE_DIR}/Include/Minte/Instance.hpp"
 
@@ -20,6 +21,7 @@ add_library(
 	# Vulkan backend
 	"VulkanBackend/VulkanInstance.hpp"
 	"VulkanBackend/VulkanInstance.cpp"
+	"VulkanBackend/VulkanMacros.hpp"
 )
 
 # Set the include directories.
