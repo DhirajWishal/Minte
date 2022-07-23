@@ -1,6 +1,6 @@
 // Copyright (c) 2022 Dhiraj Wishal
 
-#include "Minte/Instance.hpp"
+#include "Minte/Minte.hpp"
 
 #include "Layers/HeadsUpDisplay.hpp"
 
@@ -9,8 +9,8 @@
 auto main(int argc, char** argv) -> int
 try
 {
-	auto pInstance = minte::CreateInstance();
-	auto hud = HeadsUpDisplay(pInstance);
+	minte::Minte instance;
+	auto hud = HeadsUpDisplay(instance);
 
 	while (true) hud.update();
 }

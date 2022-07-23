@@ -13,12 +13,12 @@ public:
 	/**
 	 * Default constructor.
 	 */
-	constexpr HeadsUpDisplay() = default;
+	HeadsUpDisplay() = default;
 
 	/**
 	 * Explicit constructor.
 	 *
-	 * @param pInstance The instance pointer.
+	 * @param parent The parent to which the object belongs to.
 	 */
-	explicit HeadsUpDisplay(const std::shared_ptr<minte::Instance>& pInstance);
+	explicit HeadsUpDisplay(minte::Minte parent);
 };

@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "InstanceBoundObject.hpp"
+#include "MinteObject.hpp"
 
 namespace minte
 {
@@ -10,20 +10,20 @@ namespace minte
 	 * Drawable class.
 	 * This contains information to draw something to a layer.
 	 */
-	class Drawable : public InstanceBoundObject
+	class Drawable : public MinteObject
 	{
 	public:
 		/**
 		 * Default constructor.
 		 */
-		constexpr Drawable() = default;
+		Drawable() = default;
 
 		/**
 		 * Explicit constructor.
 		 *
-		 * @param pInstance The instance pointer.
+		 * @param parent The parent to which the object belongs to.
 		 */
-		explicit Drawable(const std::shared_ptr<Instance>& pInstance) : InstanceBoundObject(pInstance) {}
+		explicit Drawable(Minte parent) : MinteObject(parent) {}
 
 		/**
 		 * Default virtual destructor.

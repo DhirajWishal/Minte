@@ -26,6 +26,12 @@ set(VMA_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/VulkanMemoryAllocator
 # Set the volk meta loader include directory.
 set(VOLK_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/volk)
 
+# Set the SDL include, library and binary data.
+set(SDL_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/SDL/include)
+
+# Add the SDL library as a subdirectory.
+add_subdirectory(ThirdParty/SDL)
+
 # Same as before, lets make a target library for this.
 add_library(
 	volk
@@ -66,7 +72,8 @@ add_compile_definitions(
 # Set the central include directory.
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/Include)
 
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/Source)
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/Source/Minte)
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/Source/VulkanBackend)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/Tests)
 
 # Set the startup project for Visual Studio and set multi processor compilation for other projects that we build.

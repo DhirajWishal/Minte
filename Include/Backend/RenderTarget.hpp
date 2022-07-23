@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "../InstanceBoundObject.hpp"
+#include "InstanceBoundObject.hpp"
 
 namespace minte
 {

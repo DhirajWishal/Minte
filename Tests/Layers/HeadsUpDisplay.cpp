@@ -2,7 +2,7 @@
 
 #include "HeadsUpDisplay.hpp"
 
-HeadsUpDisplay::HeadsUpDisplay(const std::shared_ptr<minte::Instance>& pInstance)
-	: minte::Layer(pInstance, 1280, 720)
+HeadsUpDisplay::HeadsUpDisplay(minte::Minte parent)
+	: minte::Layer(parent, 1280, 720)
 {
 }

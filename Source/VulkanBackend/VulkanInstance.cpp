@@ -1,7 +1,7 @@
 // Copyright (c) 2022 Dhiraj Wishal
 
-#include "VulkanInstance.hpp"
-#include "VulkanMacros.hpp"
+#include "VulkanBackend/VulkanInstance.hpp"
+#include "VulkanBackend/VulkanMacros.hpp"
 
 #include <fstream>
 #include <array>
@@ -225,369 +225,372 @@ namespace /* anonymous */
 
 namespace minte
 {
-	VulkanInstance::VulkanInstance()
+	namespace backend
 	{
-		static StaticInitializer initializer;
+		VulkanInstance::VulkanInstance()
+		{
+			static StaticInitializer initializer;
 
-		setupInstance();
-		setupDevice();
-		setupAllocator();
-	}
+			setupInstance();
+			setupDevice();
+			setupAllocator();
+		}
 
-	VulkanInstance::~VulkanInstance()
-	{
-		vmaDestroyAllocator(m_Allocator);
-		vkDestroyDevice(m_LogicalDevice, VK_NULL_HANDLE);
+		VulkanInstance::~VulkanInstance()
+		{
+			vmaDestroyAllocator(m_Allocator);
+			vkDestroyDevice(m_LogicalDevice, VK_NULL_HANDLE);
 
 #ifdef MINTE_DEBUG
-		const auto vkDestroyDebugUtilsMessengerEXT = reinterpret_cast<PFN_vkDestroyDebugUtilsMessengerEXT>(vkGetInstanceProcAddr(m_Instance, "vkDestroyDebugUtilsMessengerEXT"));
-		vkDestroyDebugUtilsMessengerEXT(m_Instance, m_Debugger, VK_NULL_HANDLE);
+			const auto vkDestroyDebugUtilsMessengerEXT = reinterpret_cast<PFN_vkDestroyDebugUtilsMessengerEXT>(vkGetInstanceProcAddr(m_Instance, "vkDestroyDebugUtilsMessengerEXT"));
+			vkDestroyDebugUtilsMessengerEXT(m_Instance, m_Debugger, VK_NULL_HANDLE);
 
 #endif
 
-		vkDestroyInstance(m_Instance, VK_NULL_HANDLE);
-	}
+			vkDestroyInstance(m_Instance, VK_NULL_HANDLE);
+		}
 
-	void VulkanInstance::changeImageLayout(VkCommandBuffer commandBuffer, VkImage image, VkImageLayout currentLayout, VkImageLayout newLayout, VkImageAspectFlags aspectFlags, uint32_t mipLevels /*= 1*/, uint32_t layers /*= 1*/) const
-	{
-		// Create the memory barrier.
-		VkImageMemoryBarrier memorybarrier = {};
-		memorybarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-		memorybarrier.srcAccessMask = 0;
-		memorybarrier.dstAccessMask = 0;
-		memorybarrier.oldLayout = currentLayout;
-		memorybarrier.newLayout = newLayout;
-		memorybarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-		memorybarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-		memorybarrier.image = image;
-		memorybarrier.subresourceRange.aspectMask = aspectFlags;
-		memorybarrier.subresourceRange.baseMipLevel = 0;
-		memorybarrier.subresourceRange.levelCount = mipLevels;
-		memorybarrier.subresourceRange.baseArrayLayer = 0;
-		memorybarrier.subresourceRange.layerCount = layers;
-
-		// Resolve the source access masks.
-		switch (currentLayout)
+		void VulkanInstance::changeImageLayout(VkCommandBuffer commandBuffer, VkImage image, VkImageLayout currentLayout, VkImageLayout newLayout, VkImageAspectFlags aspectFlags, uint32_t mipLevels /*= 1*/, uint32_t layers /*= 1*/) const
 		{
-		case VK_IMAGE_LAYOUT_GENERAL:
-		case VK_IMAGE_LAYOUT_UNDEFINED:
+			// Create the memory barrier.
+			VkImageMemoryBarrier memorybarrier = {};
+			memorybarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
 			memorybarrier.srcAccessMask = 0;
-			break;
+			memorybarrier.dstAccessMask = 0;
+			memorybarrier.oldLayout = currentLayout;
+			memorybarrier.newLayout = newLayout;
+			memorybarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+			memorybarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+			memorybarrier.image = image;
+			memorybarrier.subresourceRange.aspectMask = aspectFlags;
+			memorybarrier.subresourceRange.baseMipLevel = 0;
+			memorybarrier.subresourceRange.levelCount = mipLevels;
+			memorybarrier.subresourceRange.baseArrayLayer = 0;
+			memorybarrier.subresourceRange.layerCount = layers;
 
-		case VK_IMAGE_LAYOUT_PREINITIALIZED:
-			memorybarrier.srcAccessMask = VK_ACCESS_HOST_WRITE_BIT;
-			break;
+			// Resolve the source access masks.
+			switch (currentLayout)
+			{
+			case VK_IMAGE_LAYOUT_GENERAL:
+			case VK_IMAGE_LAYOUT_UNDEFINED:
+				memorybarrier.srcAccessMask = 0;
+				break;
 
-		case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:
-			memorybarrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-			break;
+			case VK_IMAGE_LAYOUT_PREINITIALIZED:
+				memorybarrier.srcAccessMask = VK_ACCESS_HOST_WRITE_BIT;
+				break;
 
-		case VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
-			memorybarrier.srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-			break;
+			case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:
+				memorybarrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+				break;
 
-		case VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL:
-			memorybarrier.srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
-			break;
+			case VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
+				memorybarrier.srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+				break;
 
-		case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
-			memorybarrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
-			break;
+			case VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL:
+				memorybarrier.srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
+				break;
 
-		case VK_IMAGE_LAYOUT_PRESENT_SRC_KHR:
-			//vMB.srcAccessMask = VK_ACCESS_;
-			break;
+			case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
+				memorybarrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+				break;
 
-		case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
-			memorybarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-			break;
+			case VK_IMAGE_LAYOUT_PRESENT_SRC_KHR:
+				//vMB.srcAccessMask = VK_ACCESS_;
+				break;
 
-		case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
-			memorybarrier.srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
-			break;
+			case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
+				memorybarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+				break;
 
-		default:
-			throw backend::BackendError("Unsupported layout transition!");
+			case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
+				memorybarrier.srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
+				break;
+
+			default:
+				throw backend::BackendError("Unsupported layout transition!");
+			}
+
+			// Resolve the destination access masks.
+			switch (newLayout)
+			{
+			case VK_IMAGE_LAYOUT_UNDEFINED:
+			case VK_IMAGE_LAYOUT_GENERAL:
+			case VK_IMAGE_LAYOUT_PRESENT_SRC_KHR:
+				break;
+
+			case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
+				memorybarrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+				break;
+
+			case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
+				memorybarrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+				break;
+
+			case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:
+				memorybarrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+				break;
+
+			case VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
+				memorybarrier.dstAccessMask = memorybarrier.dstAccessMask | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+				break;
+
+			case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
+				memorybarrier.srcAccessMask |= VK_ACCESS_HOST_WRITE_BIT | VK_ACCESS_TRANSFER_WRITE_BIT;
+				memorybarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+				break;
+
+			default:
+				throw backend::BackendError("Unsupported layout transition!");
+			}
+
+			// Resolve the pipeline stages.
+			const auto sourceStage = GetPipelineStageFlags(memorybarrier.srcAccessMask);
+			const auto destinationStage = GetPipelineStageFlags(memorybarrier.dstAccessMask);
+
+			// Issue the commands. 
+			getDeviceTable().vkCmdPipelineBarrier(commandBuffer, sourceStage, destinationStage, 0, 0, nullptr, 0, nullptr, 1, &memorybarrier);
 		}
 
-		// Resolve the destination access masks.
-		switch (newLayout)
+		void VulkanInstance::setupInstance()
 		{
-		case VK_IMAGE_LAYOUT_UNDEFINED:
-		case VK_IMAGE_LAYOUT_GENERAL:
-		case VK_IMAGE_LAYOUT_PRESENT_SRC_KHR:
-			break;
+			// Setup the application info.
+			VkApplicationInfo applicationInfo = {};
+			applicationInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
+			applicationInfo.pNext = VK_NULL_HANDLE;
+			applicationInfo.apiVersion = VulkanVersion;
+			applicationInfo.applicationVersion = VK_MAKE_API_VERSION(1, 0, 0, 0);
+			applicationInfo.engineVersion = VK_MAKE_API_VERSION(1, 0, 0, 0);
+			applicationInfo.pApplicationName = "Minte";
+			applicationInfo.pEngineName = "Lamiaceae";	// Mentha is a genus of plants in the family Lamiaceae.
 
-		case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
-			memorybarrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-			break;
-
-		case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
-			memorybarrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
-			break;
-
-		case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:
-			memorybarrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-			break;
-
-		case VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
-			memorybarrier.dstAccessMask = memorybarrier.dstAccessMask | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-			break;
-
-		case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
-			memorybarrier.srcAccessMask |= VK_ACCESS_HOST_WRITE_BIT | VK_ACCESS_TRANSFER_WRITE_BIT;
-			memorybarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-			break;
-
-		default:
-			throw backend::BackendError("Unsupported layout transition!");
-		}
-
-		// Resolve the pipeline stages.
-		const auto sourceStage = GetPipelineStageFlags(memorybarrier.srcAccessMask);
-		const auto destinationStage = GetPipelineStageFlags(memorybarrier.dstAccessMask);
-
-		// Issue the commands. 
-		getDeviceTable().vkCmdPipelineBarrier(commandBuffer, sourceStage, destinationStage, 0, 0, nullptr, 0, nullptr, 1, &memorybarrier);
-	}
-
-	void VulkanInstance::setupInstance()
-	{
-		// Setup the application info.
-		VkApplicationInfo applicationInfo = {};
-		applicationInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-		applicationInfo.pNext = VK_NULL_HANDLE;
-		applicationInfo.apiVersion = VulkanVersion;
-		applicationInfo.applicationVersion = VK_MAKE_API_VERSION(1, 0, 0, 0);
-		applicationInfo.engineVersion = VK_MAKE_API_VERSION(1, 0, 0, 0);
-		applicationInfo.pApplicationName = "Minte";
-		applicationInfo.pEngineName = "Lamiaceae";	// Mentha is a genus of plants in the family Lamiaceae.
-
-		// Setup the instance create info.
-		VkInstanceCreateInfo createInfo = {};
-		createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-		createInfo.pApplicationInfo = &applicationInfo;
+			// Setup the instance create info.
+			VkInstanceCreateInfo createInfo = {};
+			createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+			createInfo.pApplicationInfo = &applicationInfo;
 
 #ifdef MINTE_DEBUG
-		// Emplace the required validation layer.
-		m_ValidationLayers.emplace_back("VK_LAYER_KHRONOS_validation");
+			// Emplace the required validation layer.
+			m_ValidationLayers.emplace_back("VK_LAYER_KHRONOS_validation");
 
-		// Create the debug messenger create info structure.
-		const auto debugMessengerCreateInfo = CreateDebugMessengerCreateInfo();
+			// Create the debug messenger create info structure.
+			const auto debugMessengerCreateInfo = CreateDebugMessengerCreateInfo();
 
-		// Submit it to the instance.
-		createInfo.enabledLayerCount = static_cast<uint32_t>(m_ValidationLayers.size());
-		createInfo.ppEnabledLayerNames = m_ValidationLayers.data();
-		createInfo.pNext = &debugMessengerCreateInfo;
+			// Submit it to the instance.
+			createInfo.enabledLayerCount = static_cast<uint32_t>(m_ValidationLayers.size());
+			createInfo.ppEnabledLayerNames = m_ValidationLayers.data();
+			createInfo.pNext = &debugMessengerCreateInfo;
 
-		const std::vector<const char*> requiredExtensions = { VK_EXT_DEBUG_UTILS_EXTENSION_NAME };
-		createInfo.enabledExtensionCount = static_cast<uint32_t>(requiredExtensions.size());
-		createInfo.ppEnabledExtensionNames = requiredExtensions.data();
+			const std::vector<const char*> requiredExtensions = { VK_EXT_DEBUG_UTILS_EXTENSION_NAME };
+			createInfo.enabledExtensionCount = static_cast<uint32_t>(requiredExtensions.size());
+			createInfo.ppEnabledExtensionNames = requiredExtensions.data();
 
 #else
-		createInfo.enabledLayerCount = 0;
-		createInfo.pNext = VK_NULL_HANDLE;
-		createInfo.enabledExtensionCount = 0;
-		createInfo.ppEnabledExtensionNames = VK_NULL_HANDLE;
+			createInfo.enabledLayerCount = 0;
+			createInfo.pNext = VK_NULL_HANDLE;
+			createInfo.enabledExtensionCount = 0;
+			createInfo.ppEnabledExtensionNames = VK_NULL_HANDLE;
 
 #endif
 
-		// Create the instance.
-		MINTE_VK_ASSERT(vkCreateInstance(&createInfo, VK_NULL_HANDLE, &m_Instance), "Failed to create the instance!");
+			// Create the instance.
+			MINTE_VK_ASSERT(vkCreateInstance(&createInfo, VK_NULL_HANDLE, &m_Instance), "Failed to create the instance!");
 
-		// Load the instance functions.
-		volkLoadInstance(m_Instance);
+			// Load the instance functions.
+			volkLoadInstance(m_Instance);
 
 #ifdef MINTE_DEBUG
-		// Create the debugger if possible.
-		const auto vkCreateDebugUtilsMessengerEXT = reinterpret_cast<PFN_vkCreateDebugUtilsMessengerEXT>(vkGetInstanceProcAddr(m_Instance, "vkCreateDebugUtilsMessengerEXT"));
-		MINTE_VK_ASSERT(vkCreateDebugUtilsMessengerEXT(m_Instance, &debugMessengerCreateInfo, VK_NULL_HANDLE, &m_Debugger), "Failed to create the debug messenger.");
+			// Create the debugger if possible.
+			const auto vkCreateDebugUtilsMessengerEXT = reinterpret_cast<PFN_vkCreateDebugUtilsMessengerEXT>(vkGetInstanceProcAddr(m_Instance, "vkCreateDebugUtilsMessengerEXT"));
+			MINTE_VK_ASSERT(vkCreateDebugUtilsMessengerEXT(m_Instance, &debugMessengerCreateInfo, VK_NULL_HANDLE, &m_Debugger), "Failed to create the debug messenger.");
 
 #endif
-	}
+		}
 
-	void VulkanInstance::setupDevice()
-	{
-		const std::vector<const char*> deviceExtensions = { VK_KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME };
-
-		// Enumerate physical devices.
-		uint32_t deviceCount = 0;
-		MINTE_VK_ASSERT(vkEnumeratePhysicalDevices(m_Instance, &deviceCount, VK_NULL_HANDLE), "Failed to enumerate physical devices.");
-
-		// Throw an error if there are no physical devices available.
-		if (deviceCount == 0)
-			throw backend::BackendError("No physical devices found!");
-
-		std::vector<VkPhysicalDevice> candidates(deviceCount);
-		MINTE_VK_ASSERT(vkEnumeratePhysicalDevices(m_Instance, &deviceCount, candidates.data()), "Failed to enumerate physical devices.");
-
-		struct Candidate { VkPhysicalDeviceProperties m_Properties; VkPhysicalDevice m_Candidate; };
-		std::array<Candidate, 6> priorityMap = { Candidate() };
-
-		// Iterate through all the candidate devices and find the best device.
-		for (const auto& candidate : candidates)
+		void VulkanInstance::setupDevice()
 		{
-			// Check if the device is suitable for our use.
-			if (CheckDeviceExtensionSupport(candidate, deviceExtensions) &&
-				CheckQueueSupport(candidate, VK_QUEUE_GRAPHICS_BIT) &&
-				CheckQueueSupport(candidate, VK_QUEUE_COMPUTE_BIT) &&
-				CheckQueueSupport(candidate, VK_QUEUE_TRANSFER_BIT))
+			const std::vector<const char*> deviceExtensions = { VK_KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME };
+
+			// Enumerate physical devices.
+			uint32_t deviceCount = 0;
+			MINTE_VK_ASSERT(vkEnumeratePhysicalDevices(m_Instance, &deviceCount, VK_NULL_HANDLE), "Failed to enumerate physical devices.");
+
+			// Throw an error if there are no physical devices available.
+			if (deviceCount == 0)
+				throw backend::BackendError("No physical devices found!");
+
+			std::vector<VkPhysicalDevice> candidates(deviceCount);
+			MINTE_VK_ASSERT(vkEnumeratePhysicalDevices(m_Instance, &deviceCount, candidates.data()), "Failed to enumerate physical devices.");
+
+			struct Candidate { VkPhysicalDeviceProperties m_Properties; VkPhysicalDevice m_Candidate; };
+			std::array<Candidate, 6> priorityMap = { Candidate() };
+
+			// Iterate through all the candidate devices and find the best device.
+			for (const auto& candidate : candidates)
 			{
-				VkPhysicalDeviceProperties physicalDeviceProperties = {};
-				vkGetPhysicalDeviceProperties(candidate, &physicalDeviceProperties);
-
-				// Sort the candidates by priority.
-				uint8_t priorityIndex = 5;
-				switch (physicalDeviceProperties.deviceType)
+				// Check if the device is suitable for our use.
+				if (CheckDeviceExtensionSupport(candidate, deviceExtensions) &&
+					CheckQueueSupport(candidate, VK_QUEUE_GRAPHICS_BIT) &&
+					CheckQueueSupport(candidate, VK_QUEUE_COMPUTE_BIT) &&
+					CheckQueueSupport(candidate, VK_QUEUE_TRANSFER_BIT))
 				{
-				case VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU:
-					priorityIndex = 0;
-					break;
+					VkPhysicalDeviceProperties physicalDeviceProperties = {};
+					vkGetPhysicalDeviceProperties(candidate, &physicalDeviceProperties);
 
-				case VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU:
-					priorityIndex = 1;
-					break;
+					// Sort the candidates by priority.
+					uint8_t priorityIndex = 5;
+					switch (physicalDeviceProperties.deviceType)
+					{
+					case VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU:
+						priorityIndex = 0;
+						break;
 
-				case VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU:
-					priorityIndex = 2;
-					break;
+					case VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU:
+						priorityIndex = 1;
+						break;
 
-				case VK_PHYSICAL_DEVICE_TYPE_CPU:
-					priorityIndex = 3;
-					break;
+					case VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU:
+						priorityIndex = 2;
+						break;
 
-				case VK_PHYSICAL_DEVICE_TYPE_OTHER:
-					priorityIndex = 4;
-					break;
+					case VK_PHYSICAL_DEVICE_TYPE_CPU:
+						priorityIndex = 3;
+						break;
 
-				default:
-					priorityIndex = 5;
+					case VK_PHYSICAL_DEVICE_TYPE_OTHER:
+						priorityIndex = 4;
+						break;
+
+					default:
+						priorityIndex = 5;
+						break;
+					}
+
+					priorityMap[priorityIndex].m_Candidate = candidate;
+					priorityMap[priorityIndex].m_Properties = physicalDeviceProperties;
+				}
+			}
+
+			// Choose the physical device with the highest priority.
+			for (const auto& candidate : priorityMap)
+			{
+				if (candidate.m_Candidate != VK_NULL_HANDLE)
+				{
+					m_PhysicalDevice = candidate.m_Candidate;
+					m_PhysicalDeviceProperties = candidate.m_Properties;
 					break;
 				}
-
-				priorityMap[priorityIndex].m_Candidate = candidate;
-				priorityMap[priorityIndex].m_Properties = physicalDeviceProperties;
 			}
-		}
 
-		// Choose the physical device with the highest priority.
-		for (const auto& candidate : priorityMap)
-		{
-			if (candidate.m_Candidate != VK_NULL_HANDLE)
+			// Throw and error if a physical device was not found.
+			if (m_PhysicalDevice == VK_NULL_HANDLE)
+				throw backend::BackendError("Failed to find a suitable physical device!");
+
+			// Setup device queues.
+			constexpr float priority = 1.0f;
+			std::set<uint32_t> uniqueQueueFamilies = {
+				m_GraphicsQueue.m_Family,
+				m_ComputeQueue.m_Family,
+				m_TransferQueue.m_Family
+			};
+
+			VkDeviceQueueCreateInfo queueCreateInfo = {};
+			queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+			queueCreateInfo.pNext = VK_NULL_HANDLE;
+			queueCreateInfo.flags = 0;
+			queueCreateInfo.queueFamilyIndex = 0;
+			queueCreateInfo.queueCount = 1;
+			queueCreateInfo.pQueuePriorities = &priority;
+
+			std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
+			for (const auto& family : uniqueQueueFamilies)
 			{
-				m_PhysicalDevice = candidate.m_Candidate;
-				m_PhysicalDeviceProperties = candidate.m_Properties;
-				break;
+				queueCreateInfo.queueFamilyIndex = family;
+				queueCreateInfos.emplace_back(queueCreateInfo);
 			}
-		}
 
-		// Throw and error if a physical device was not found.
-		if (m_PhysicalDevice == VK_NULL_HANDLE)
-			throw backend::BackendError("Failed to find a suitable physical device!");
+			// Setup all the required features.
+			VkPhysicalDeviceFeatures features = {};
+			// features.samplerAnisotropy = VK_TRUE;
+			// features.sampleRateShading = VK_TRUE;
+			// features.tessellationShader = VK_TRUE;
+			// features.geometryShader = VK_TRUE;
 
-		// Setup device queues.
-		constexpr float priority = 1.0f;
-		std::set<uint32_t> uniqueQueueFamilies = {
-			m_GraphicsQueue.m_Family,
-			m_ComputeQueue.m_Family,
-			m_TransferQueue.m_Family
-		};
-
-		VkDeviceQueueCreateInfo queueCreateInfo = {};
-		queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-		queueCreateInfo.pNext = VK_NULL_HANDLE;
-		queueCreateInfo.flags = 0;
-		queueCreateInfo.queueFamilyIndex = 0;
-		queueCreateInfo.queueCount = 1;
-		queueCreateInfo.pQueuePriorities = &priority;
-
-		std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
-		for (const auto& family : uniqueQueueFamilies)
-		{
-			queueCreateInfo.queueFamilyIndex = family;
-			queueCreateInfos.emplace_back(queueCreateInfo);
-		}
-
-		// Setup all the required features.
-		VkPhysicalDeviceFeatures features = {};
-		// features.samplerAnisotropy = VK_TRUE;
-		// features.sampleRateShading = VK_TRUE;
-		// features.tessellationShader = VK_TRUE;
-		// features.geometryShader = VK_TRUE;
-
-		// Setup the device create info.
-		VkDeviceCreateInfo deviceCreateInfo = {};
-		deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-		deviceCreateInfo.pNext = VK_NULL_HANDLE;
-		deviceCreateInfo.flags = 0;
-		deviceCreateInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
-		deviceCreateInfo.pQueueCreateInfos = queueCreateInfos.data();
-		deviceCreateInfo.enabledLayerCount = 0;
-		deviceCreateInfo.ppEnabledLayerNames = VK_NULL_HANDLE;
-		deviceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size());
-		deviceCreateInfo.ppEnabledExtensionNames = deviceExtensions.data();
-		deviceCreateInfo.pEnabledFeatures = &features;
+			// Setup the device create info.
+			VkDeviceCreateInfo deviceCreateInfo = {};
+			deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+			deviceCreateInfo.pNext = VK_NULL_HANDLE;
+			deviceCreateInfo.flags = 0;
+			deviceCreateInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
+			deviceCreateInfo.pQueueCreateInfos = queueCreateInfos.data();
+			deviceCreateInfo.enabledLayerCount = 0;
+			deviceCreateInfo.ppEnabledLayerNames = VK_NULL_HANDLE;
+			deviceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size());
+			deviceCreateInfo.ppEnabledExtensionNames = deviceExtensions.data();
+			deviceCreateInfo.pEnabledFeatures = &features;
 
 #ifdef MINTE_DEBUG
-		// Get the validation layers and initialize it.
-		deviceCreateInfo.enabledLayerCount = static_cast<uint32_t>(m_ValidationLayers.size());
-		deviceCreateInfo.ppEnabledLayerNames = m_ValidationLayers.data();
+			// Get the validation layers and initialize it.
+			deviceCreateInfo.enabledLayerCount = static_cast<uint32_t>(m_ValidationLayers.size());
+			deviceCreateInfo.ppEnabledLayerNames = m_ValidationLayers.data();
 
 #endif
 
-		// Create the device.
-		MINTE_VK_ASSERT(vkCreateDevice(m_PhysicalDevice, &deviceCreateInfo, VK_NULL_HANDLE, &m_LogicalDevice), "Failed to create the logical device!");
+			// Create the device.
+			MINTE_VK_ASSERT(vkCreateDevice(m_PhysicalDevice, &deviceCreateInfo, VK_NULL_HANDLE, &m_LogicalDevice), "Failed to create the logical device!");
 
-		// Load the device table.
-		volkLoadDeviceTable(&m_DeviceTable, m_LogicalDevice);
+			// Load the device table.
+			volkLoadDeviceTable(&m_DeviceTable, m_LogicalDevice);
 
-		// Get the queues.
-		m_DeviceTable.vkGetDeviceQueue(m_LogicalDevice, m_GraphicsQueue.m_Family, 0, &m_GraphicsQueue.m_Queue);
-		m_DeviceTable.vkGetDeviceQueue(m_LogicalDevice, m_ComputeQueue.m_Family, 0, &m_ComputeQueue.m_Queue);
-		m_DeviceTable.vkGetDeviceQueue(m_LogicalDevice, m_TransferQueue.m_Family, 0, &m_TransferQueue.m_Queue);
-	}
+			// Get the queues.
+			m_DeviceTable.vkGetDeviceQueue(m_LogicalDevice, m_GraphicsQueue.m_Family, 0, &m_GraphicsQueue.m_Queue);
+			m_DeviceTable.vkGetDeviceQueue(m_LogicalDevice, m_ComputeQueue.m_Family, 0, &m_ComputeQueue.m_Queue);
+			m_DeviceTable.vkGetDeviceQueue(m_LogicalDevice, m_TransferQueue.m_Family, 0, &m_TransferQueue.m_Queue);
+		}
 
-	void VulkanInstance::setupAllocator()
-	{
-		// Setup the Vulkan functions needed by VMA.
-		VmaVulkanFunctions functions = {};
-		functions.vkGetInstanceProcAddr = vkGetInstanceProcAddr;
-		functions.vkGetDeviceProcAddr = vkGetDeviceProcAddr;
-		functions.vkGetPhysicalDeviceProperties = vkGetPhysicalDeviceProperties;
-		functions.vkGetPhysicalDeviceMemoryProperties = vkGetPhysicalDeviceMemoryProperties;
-		functions.vkAllocateMemory = m_DeviceTable.vkAllocateMemory;
-		functions.vkFreeMemory = m_DeviceTable.vkFreeMemory;
-		functions.vkMapMemory = m_DeviceTable.vkMapMemory;
-		functions.vkUnmapMemory = m_DeviceTable.vkUnmapMemory;
-		functions.vkFlushMappedMemoryRanges = m_DeviceTable.vkFlushMappedMemoryRanges;
-		functions.vkInvalidateMappedMemoryRanges = m_DeviceTable.vkInvalidateMappedMemoryRanges;
-		functions.vkBindBufferMemory = m_DeviceTable.vkBindBufferMemory;
-		functions.vkBindImageMemory = m_DeviceTable.vkBindImageMemory;
-		functions.vkGetBufferMemoryRequirements = m_DeviceTable.vkGetBufferMemoryRequirements;
-		functions.vkGetImageMemoryRequirements = m_DeviceTable.vkGetImageMemoryRequirements;
-		functions.vkCreateBuffer = m_DeviceTable.vkCreateBuffer;
-		functions.vkDestroyBuffer = m_DeviceTable.vkDestroyBuffer;
-		functions.vkCreateImage = m_DeviceTable.vkCreateImage;
-		functions.vkDestroyImage = m_DeviceTable.vkDestroyImage;
-		functions.vkCmdCopyBuffer = m_DeviceTable.vkCmdCopyBuffer;
-		functions.vkGetBufferMemoryRequirements2KHR = m_DeviceTable.vkGetBufferMemoryRequirements2KHR;
-		functions.vkGetImageMemoryRequirements2KHR = m_DeviceTable.vkGetImageMemoryRequirements2KHR;
-		functions.vkBindBufferMemory2KHR = m_DeviceTable.vkBindBufferMemory2KHR;
-		functions.vkBindImageMemory2KHR = m_DeviceTable.vkBindImageMemory2KHR;
-		functions.vkGetPhysicalDeviceMemoryProperties2KHR = vkGetPhysicalDeviceMemoryProperties2KHR;
-		functions.vkGetDeviceBufferMemoryRequirements = m_DeviceTable.vkGetDeviceBufferMemoryRequirements;
-		functions.vkGetDeviceImageMemoryRequirements = m_DeviceTable.vkGetDeviceImageMemoryRequirements;
+		void VulkanInstance::setupAllocator()
+		{
+			// Setup the Vulkan functions needed by VMA.
+			VmaVulkanFunctions functions = {};
+			functions.vkGetInstanceProcAddr = vkGetInstanceProcAddr;
+			functions.vkGetDeviceProcAddr = vkGetDeviceProcAddr;
+			functions.vkGetPhysicalDeviceProperties = vkGetPhysicalDeviceProperties;
+			functions.vkGetPhysicalDeviceMemoryProperties = vkGetPhysicalDeviceMemoryProperties;
+			functions.vkAllocateMemory = m_DeviceTable.vkAllocateMemory;
+			functions.vkFreeMemory = m_DeviceTable.vkFreeMemory;
+			functions.vkMapMemory = m_DeviceTable.vkMapMemory;
+			functions.vkUnmapMemory = m_DeviceTable.vkUnmapMemory;
+			functions.vkFlushMappedMemoryRanges = m_DeviceTable.vkFlushMappedMemoryRanges;
+			functions.vkInvalidateMappedMemoryRanges = m_DeviceTable.vkInvalidateMappedMemoryRanges;
+			functions.vkBindBufferMemory = m_DeviceTable.vkBindBufferMemory;
+			functions.vkBindImageMemory = m_DeviceTable.vkBindImageMemory;
+			functions.vkGetBufferMemoryRequirements = m_DeviceTable.vkGetBufferMemoryRequirements;
+			functions.vkGetImageMemoryRequirements = m_DeviceTable.vkGetImageMemoryRequirements;
+			functions.vkCreateBuffer = m_DeviceTable.vkCreateBuffer;
+			functions.vkDestroyBuffer = m_DeviceTable.vkDestroyBuffer;
+			functions.vkCreateImage = m_DeviceTable.vkCreateImage;
+			functions.vkDestroyImage = m_DeviceTable.vkDestroyImage;
+			functions.vkCmdCopyBuffer = m_DeviceTable.vkCmdCopyBuffer;
+			functions.vkGetBufferMemoryRequirements2KHR = m_DeviceTable.vkGetBufferMemoryRequirements2KHR;
+			functions.vkGetImageMemoryRequirements2KHR = m_DeviceTable.vkGetImageMemoryRequirements2KHR;
+			functions.vkBindBufferMemory2KHR = m_DeviceTable.vkBindBufferMemory2KHR;
+			functions.vkBindImageMemory2KHR = m_DeviceTable.vkBindImageMemory2KHR;
+			functions.vkGetPhysicalDeviceMemoryProperties2KHR = vkGetPhysicalDeviceMemoryProperties2KHR;
+			functions.vkGetDeviceBufferMemoryRequirements = m_DeviceTable.vkGetDeviceBufferMemoryRequirements;
+			functions.vkGetDeviceImageMemoryRequirements = m_DeviceTable.vkGetDeviceImageMemoryRequirements;
 
-		// Setup create info.
-		VmaAllocatorCreateInfo createInfo = {};
-		// createInfo.flags = VMA_ALLOCATOR_CREATE_EXTERNALLY_SYNCHRONIZED_BIT;
-		createInfo.flags = 0;
-		createInfo.physicalDevice = m_PhysicalDevice;
-		createInfo.device = m_LogicalDevice;
-		createInfo.pVulkanFunctions = &functions;
-		createInfo.instance = m_Instance;
-		createInfo.vulkanApiVersion = VulkanVersion;
+			// Setup create info.
+			VmaAllocatorCreateInfo createInfo = {};
+			// createInfo.flags = VMA_ALLOCATOR_CREATE_EXTERNALLY_SYNCHRONIZED_BIT;
+			createInfo.flags = 0;
+			createInfo.physicalDevice = m_PhysicalDevice;
+			createInfo.device = m_LogicalDevice;
+			createInfo.pVulkanFunctions = &functions;
+			createInfo.instance = m_Instance;
+			createInfo.vulkanApiVersion = VulkanVersion;
 
-		MINTE_VK_ASSERT(vmaCreateAllocator(&createInfo, &m_Allocator), "Failed to create the allocator!");
+			MINTE_VK_ASSERT(vmaCreateAllocator(&createInfo, &m_Allocator), "Failed to create the allocator!");
+		}
 	}
 }
