@@ -56,6 +56,9 @@ endif ()
 # Add the Vulkan headers as a target include directory.
 target_include_directories(volk PUBLIC ${VULKAN_HEADERS_INCLUDE_DIR})
 
+# Add spdlog as a third party library.
+set(SPDLOG_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/ThirdParty/spdlog/include)
+
 # Set global compile definitions.
 add_compile_definitions(
 	$<$<CONFIG:Debug>:MINTE_DEBUG>
@@ -73,7 +76,6 @@ add_compile_definitions(
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/Include)
 
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/Source/Minte)
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/Source/VulkanBackend)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/Tests)
 
 # Set the startup project for Visual Studio and set multi processor compilation for other projects that we build.

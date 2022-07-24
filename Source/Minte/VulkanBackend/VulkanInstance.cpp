@@ -1,9 +1,16 @@
 // Copyright (c) 2022 Dhiraj Wishal
 
-#include "VulkanBackend/VulkanInstance.hpp"
-#include "VulkanBackend/VulkanMacros.hpp"
+#include "Minte/Backend/VulkanBackend/VulkanInstance.hpp"
+#include "Minte/Backend/VulkanBackend/VulkanMacros.hpp"
 
-#include <fstream>
+#include <spdlog/spdlog.h>
+
+#if defined(MINTE_PLATFORM_WINDOWS)
+#include <vulkan/vulkan_win32.h>
+
+#endif
+
+#include <sstream>
 #include <array>
 #include <set>
 
@@ -27,19 +34,35 @@ namespace /* anonymous */
 		const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
 		void* pUserData)
 	{
-		static auto outputFile = std::ofstream("DebugOutput.txt");
-		outputFile << "Vulkan Validation Layer : ";
+		std::stringstream messageStream;
+		messageStream << "Vulkan Validation Layer : ";
 
 		if (messageType & VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT)
-			outputFile << "GENERAL | ";
+			messageStream << "GENERAL | ";
 
 		else if (messageType & VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT)
-			outputFile << "VALIDATION | ";
+			messageStream << "VALIDATION | ";
 
 		else if (messageType & VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT)
-			outputFile << "PERFORMANCE | ";
+			messageStream << "PERFORMANCE | ";
 
-		outputFile << pCallbackData->pMessage << std::endl;
+		messageStream << pCallbackData->pMessage;
+
+		switch (messageSeverity)
+		{
+		case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
+			spdlog::warn(messageStream.str());
+			break;
+
+		case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
+			spdlog::error(messageStream.str());
+			break;
+
+		default:
+			spdlog::info(messageStream.str());
+			break;
+		}
+
 		return VK_FALSE;
 	}
 
@@ -370,6 +393,55 @@ namespace minte
 			createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
 			createInfo.pApplicationInfo = &applicationInfo;
 
+			std::vector<const char*> requiredExtensions = { VK_KHR_SURFACE_EXTENSION_NAME , VK_KHR_DISPLAY_EXTENSION_NAME };
+
+#if defined(VK_KHR_ANDROID_SURFACE_EXTENSION_NAME)
+			requiredExtensions.emplace_back(VK_KHR_ANDROID_SURFACE_EXTENSION_NAME);
+
+#elif defined(VK_FUCHSIA_IMAGEPIPE_SURFACE_EXTENSION_NAME)
+			requiredExtensions.emplace_back(VK_FUCHSIA_IMAGEPIPE_SURFACE_EXTENSION_NAME);
+
+#elif defined(VK_FUCHSIA_IMAGEPIPE_SURFACE_EXTENSION_NAME)
+			requiredExtensions.emplace_back(VK_FUCHSIA_IMAGEPIPE_SURFACE_EXTENSION_NAME);
+
+#elif defined(VK_MVK_IOS_SURFACE_EXTENSION_NAME)
+			requiredExtensions.emplace_back(VK_MVK_IOS_SURFACE_EXTENSION_NAME);
+
+#elif defined(VK_MVK_MACOS_SURFACE_EXTENSION_NAME)
+			requiredExtensions.emplace_back(VK_MVK_MACOS_SURFACE_EXTENSION_NAME);
+
+#elif defined(VK_EXT_METAL_SURFACE_EXTENSION_NAME)
+			requiredExtensions.emplace_back(VK_EXT_METAL_SURFACE_EXTENSION_NAME);
+
+#elif defined(VK_NN_VI_SURFACE_EXTENSION_NAME)
+			requiredExtensions.emplace_back(VK_NN_VI_SURFACE_EXTENSION_NAME);
+
+#elif defined(VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME)
+			requiredExtensions.emplace_back(VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME);
+
+#elif defined(VK_KHR_WIN32_SURFACE_EXTENSION_NAME)
+			requiredExtensions.emplace_back(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
+
+#elif defined(VK_KHR_XCB_SURFACE_EXTENSION_NAME)
+			requiredExtensions.emplace_back(VK_KHR_XCB_SURFACE_EXTENSION_NAME);
+
+#elif defined(VK_KHR_XLIB_SURFACE_EXTENSION_NAME)
+			requiredExtensions.emplace_back(VK_KHR_XLIB_SURFACE_EXTENSION_NAME);
+
+#elif defined(VK_EXT_DIRECTFB_SURFACE_EXTENSION_NAME)
+			requiredExtensions.emplace_back(VK_EXT_DIRECTFB_SURFACE_EXTENSION_NAME);
+
+#elif defined(VK_EXT_ACQUIRE_XLIB_DISPLAY_EXTENSION_NAME)
+			requiredExtensions.emplace_back(VK_EXT_ACQUIRE_XLIB_DISPLAY_EXTENSION_NAME);
+
+#elif defined(VK_GGP_STREAM_DESCRIPTOR_SURFACE_EXTENSION_NAME)
+			requiredExtensions.emplace_back(VK_GGP_STREAM_DESCRIPTOR_SURFACE_EXTENSION_NAME);
+
+#elif defined(VK_QNX_SCREEN_SURFACE_EXTENSION_NAME)
+			requiredExtensions.emplace_back(VK_QNX_SCREEN_SURFACE_EXTENSION_NAME);
+
+#endif
+
 #ifdef MINTE_DEBUG
 			// Emplace the required validation layer.
 			m_ValidationLayers.emplace_back("VK_LAYER_KHRONOS_validation");
@@ -382,7 +454,7 @@ namespace minte
 			createInfo.ppEnabledLayerNames = m_ValidationLayers.data();
 			createInfo.pNext = &debugMessengerCreateInfo;
 
-			const std::vector<const char*> requiredExtensions = { VK_EXT_DEBUG_UTILS_EXTENSION_NAME };
+			requiredExtensions.emplace_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 			createInfo.enabledExtensionCount = static_cast<uint32_t>(requiredExtensions.size());
 			createInfo.ppEnabledExtensionNames = requiredExtensions.data();
 
@@ -410,7 +482,7 @@ namespace minte
 
 		void VulkanInstance::setupDevice()
 		{
-			const std::vector<const char*> deviceExtensions = { VK_KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME };
+			const std::vector<const char*> deviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME, VK_KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME };
 
 			// Enumerate physical devices.
 			uint32_t deviceCount = 0;

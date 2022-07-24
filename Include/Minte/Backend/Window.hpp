@@ -61,6 +61,7 @@ namespace minte
 
 		protected:
 			std::string m_Title;
+
 			uint32_t m_Width = 0;
 			uint32_t m_Height = 0;
 		};

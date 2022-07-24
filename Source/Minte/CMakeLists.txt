@@ -21,11 +21,11 @@ add_library(
 	"Minte.cpp"
 )
 
-# Add the target links.
-target_link_libraries(Minte MinteVulkanBackend)
-
 # Make sure to specify the C++ standard to C++20.
 set_property(TARGET Minte PROPERTY CXX_STANDARD 20)
+
+# Add the backends.
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/VulkanBackend)
 
 # If we are on MSVC, we can use the Multi Processor Compilation option.
 if (MSVC)

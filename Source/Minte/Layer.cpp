@@ -3,24 +3,30 @@
 #include "Minte/Layer.hpp"
 #include "Minte/FrontendError.hpp"
 
-#include "VulkanBackend/VulkanRenderTarget.hpp"
-
 namespace minte
 {
-	Layer::Layer(Minte parent, uint32_t width, uint32_t height)
+	Layer::Layer(Minte parent, std::unique_ptr<backend::RenderTarget>&& pRenderTarget)
 		: MinteObject(parent)
-		, m_Rectangle(Point2D_UI32(0), Point2D_UI32(width, height))
-		, m_pRenderTarget(std::make_unique<backend::VulkanRenderTarget>(std::static_pointer_cast<backend::VulkanInstance>(parent.getInstance()), width, height))
+		, m_pRenderTarget(std::move(pRenderTarget))
 	{
 	}
 
-	void Layer::update()
+	LayerOutput Layer::update()
 	{
+		LayerOutput output;
+
 		// We need to update only if the render target is valid.
 		if (m_pRenderTarget->isValid())
 		{
 			m_pRenderTarget->draw();
+
+			// Get the output images.
+			output.m_pColorBuffer = m_pRenderTarget->getColorBuffer();
+			output.m_pEntityBuffer = m_pRenderTarget->getEntityBuffer();
+			output.m_pDepthBuffer = m_pRenderTarget->getDepthBuffer();
 		}
+
+		return output;
 	}
 
 }

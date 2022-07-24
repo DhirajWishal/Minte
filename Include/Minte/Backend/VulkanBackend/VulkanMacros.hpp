@@ -2,6 +2,6 @@
 
 #pragma once
 
-#include "Backend/BackendError.hpp"
+#include "../BackendError.hpp"
 
 #define MINTE_VK_ASSERT(exp, message) if(exp != VK_SUCCESS) throw ::minte::backend::BackendError(message)

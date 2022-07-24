@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "Backend/Window.hpp"
+#include "../Window.hpp"
 #include "VulkanInstance.hpp"
 
 #include <SDL.h>

@@ -12,14 +12,16 @@ add_library(
 	MinteVulkanBackend
 	STATIC
 
-	"${CMAKE_SOURCE_DIR}/Include/VulkanBackend/VulkanInstance.hpp"
-	"${CMAKE_SOURCE_DIR}/Include/VulkanBackend/VulkanMacros.hpp"
-	"${CMAKE_SOURCE_DIR}/Include/VulkanBackend/VulkanRenderTarget.hpp"
-	"${CMAKE_SOURCE_DIR}/Include/VulkanBackend/VulkanWindow.hpp"
+	"${CMAKE_SOURCE_DIR}/Include/Minte/Backend/VulkanBackend/VulkanInstance.hpp"
+	"${CMAKE_SOURCE_DIR}/Include/Minte/Backend/VulkanBackend/VulkanMacros.hpp"
+	"${CMAKE_SOURCE_DIR}/Include/Minte/Backend/VulkanBackend/VulkanRenderTarget.hpp"
+	"${CMAKE_SOURCE_DIR}/Include/Minte/Backend/VulkanBackend/VulkanWindow.hpp"
+	"${CMAKE_SOURCE_DIR}/Include/Minte/Backend/VulkanBackend/VulkanImageBuffer.hpp"
 	
 	"VulkanInstance.cpp"
 	"VulkanRenderTarget.cpp"
 	"VulkanWindow.cpp"
+	"VulkanImageBuffer.cpp"
 
 	"vk_mem_alloc.cpp"
 )
@@ -32,6 +34,7 @@ target_include_directories(
 	PUBLIC ${VOLK_INCLUDE_DIR} 
 	PUBLIC ${VMA_INCLUDE_DIR} 
 	PUBLIC ${SDL_INCLUDE_DIR}
+	PRIVATE ${SPDLOG_INCLUDE_DIR}
 )
 
 # Add the target links.

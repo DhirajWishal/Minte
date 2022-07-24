@@ -2,6 +2,8 @@
 
 #include "Minte/Minte.hpp"
 
+#include "Minte/Backend/VulkanBackend/VulkanInstance.hpp"
+
 #include "Layers/HeadsUpDisplay.hpp"
 
 #include <iostream>
@@ -9,10 +11,10 @@
 auto main(int argc, char** argv) -> int
 try
 {
-	minte::Minte instance;
+	auto instance = minte::Minte(std::make_shared<minte::backend::VulkanInstance>());
 	auto hud = HeadsUpDisplay(instance);
 
-	while (true) hud.update();
+	while (true) const auto images = hud.update();
 }
 catch (std::runtime_error& error)
 {

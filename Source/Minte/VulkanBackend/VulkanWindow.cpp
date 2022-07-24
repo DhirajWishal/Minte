@@ -1,11 +1,39 @@
 // Copyright (c) 2022 Dhiraj Wishal
 
-#include "VulkanBackend/VulkanWindow.hpp"
-#include "VulkanBackend/VulkanMacros.hpp"
+#include "Minte/Backend/VulkanBackend/VulkanWindow.hpp"
+#include "Minte/Backend/VulkanBackend/VulkanMacros.hpp"
 
 #include <SDL_vulkan.h>
 
 #include <array>
+
+namespace /* anonymous */
+{
+	/**
+	 * Static initializer struct.
+	 * These structs are used to initialize data that are to be initialized just once in the application.
+	 */
+	struct StaticInitializer final
+	{
+		/**
+		 * Default constructor.
+		 */
+		StaticInitializer()
+		{
+			// Initialize volk.
+			SDL_Init(SDL_INIT_VIDEO);
+		}
+
+		/**
+		 * Destructor.
+		 */
+		~StaticInitializer()
+		{
+			// Quit SDL.
+			SDL_Quit();
+		}
+	};
+}
 
 namespace minte
 {
@@ -56,8 +84,8 @@ namespace minte
 			const auto pInstance = getInstance()->as<VulkanInstance>();
 			pInstance->getDeviceTable().vkDestroyRenderPass(pInstance->getLogicalDevice(), m_RenderPass, VK_NULL_HANDLE);
 			pInstance->getDeviceTable().vkDestroyFramebuffer(pInstance->getLogicalDevice(), m_Framebuffer, VK_NULL_HANDLE);
-			pInstance->getDeviceTable().vkDestroySemaphore(pInstance->getLogicalDevice(), m_RenderFinishedSemaphore, nullptr);
-			pInstance->getDeviceTable().vkDestroySemaphore(pInstance->getLogicalDevice(), m_InFlightSemaphore, nullptr);
+			pInstance->getDeviceTable().vkDestroySemaphore(pInstance->getLogicalDevice(), m_RenderFinishedSemaphore, VK_NULL_HANDLE);
+			pInstance->getDeviceTable().vkDestroySemaphore(pInstance->getLogicalDevice(), m_InFlightSemaphore, VK_NULL_HANDLE);
 
 			vkDestroySurfaceKHR(pInstance->getInstance(), m_Surface, VK_NULL_HANDLE);
 			SDL_DestroyWindow(m_pWindow);
@@ -159,7 +187,7 @@ namespace minte
 			swapchainCreateInfo.oldSwapchain = VK_NULL_HANDLE;
 
 			// Resolve the queue families if the two queues are different.
-			uint32_t queueFamilyindices[2] = {
+			std::array<uint32_t, 2> queueFamilyindices = {
 				pInstance->getGraphicsQueue().m_Family,
 				pInstance->getTransferQueue().m_Family
 			};
@@ -168,7 +196,7 @@ namespace minte
 			{
 				swapchainCreateInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
 				swapchainCreateInfo.queueFamilyIndexCount = 2;
-				swapchainCreateInfo.pQueueFamilyIndices = queueFamilyindices;
+				swapchainCreateInfo.pQueueFamilyIndices = queueFamilyindices.data();
 			}
 
 			MINTE_VK_ASSERT(pInstance->getDeviceTable().vkCreateSwapchainKHR(pInstance->getLogicalDevice(), &swapchainCreateInfo, VK_NULL_HANDLE, &m_Swapchain), "Failed to create the swapchain!");
@@ -196,8 +224,8 @@ namespace minte
 		void VulkanWindow::clearSwapchain()
 		{
 			const auto pInstance = getInstance()->as<VulkanInstance>();
-			pInstance->getDeviceTable().vkDestroyImageView(pInstance->getLogicalDevice(), m_SwapchainImageView, nullptr);
-			pInstance->getDeviceTable().vkDestroySwapchainKHR(pInstance->getLogicalDevice(), m_Swapchain, nullptr);
+			pInstance->getDeviceTable().vkDestroyImageView(pInstance->getLogicalDevice(), m_SwapchainImageView, VK_NULL_HANDLE);
+			pInstance->getDeviceTable().vkDestroySwapchainKHR(pInstance->getLogicalDevice(), m_Swapchain, VK_NULL_HANDLE);
 		}
 
 		void VulkanWindow::setupRenderPass()
@@ -207,7 +235,7 @@ namespace minte
 			attachmentDescription.flags = 0;
 			attachmentDescription.format = m_SwapchainFormat;
 			attachmentDescription.samples = VK_SAMPLE_COUNT_1_BIT;
-			attachmentDescription.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;	// TODO: Play around with this so that we don't do anything stupid with the depencency copy.
+			attachmentDescription.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;	// TODO: Play around with this so that we don't do anything stupid with the dependency copy.
 			attachmentDescription.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 			attachmentDescription.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 			attachmentDescription.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
@@ -215,7 +243,7 @@ namespace minte
 			attachmentDescription.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
 			// Create the subpass dependencies.
-			std::array<VkSubpassDependency, 2> subpassDependencies;
+			std::array<VkSubpassDependency, 2> subpassDependencies = {};
 			subpassDependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
 			subpassDependencies[0].dstSubpass = 0;
 			subpassDependencies[0].srcStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
@@ -241,18 +269,18 @@ namespace minte
 			subpassDescription.flags = 0;
 			subpassDescription.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
 			subpassDescription.inputAttachmentCount = 0;
-			subpassDescription.pInputAttachments = nullptr;
+			subpassDescription.pInputAttachments = VK_NULL_HANDLE;
 			subpassDescription.colorAttachmentCount = 1;
 			subpassDescription.pColorAttachments = &colorAttachmentReference;
-			subpassDescription.pResolveAttachments = nullptr;
-			subpassDescription.pDepthStencilAttachment = nullptr;
+			subpassDescription.pResolveAttachments = VK_NULL_HANDLE;
+			subpassDescription.pDepthStencilAttachment = VK_NULL_HANDLE;
 			subpassDescription.preserveAttachmentCount = 0;
-			subpassDescription.pPreserveAttachments = nullptr;
+			subpassDescription.pPreserveAttachments = VK_NULL_HANDLE;
 
 			// Create the render target.
 			VkRenderPassCreateInfo renderPassCreateInfo = {};
 			renderPassCreateInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-			renderPassCreateInfo.pNext = nullptr;
+			renderPassCreateInfo.pNext = VK_NULL_HANDLE;
 			renderPassCreateInfo.flags = 0;
 			renderPassCreateInfo.attachmentCount = 1;
 			renderPassCreateInfo.pAttachments = &attachmentDescription;
@@ -262,7 +290,7 @@ namespace minte
 			renderPassCreateInfo.pDependencies = subpassDependencies.data();
 
 			const auto pInstance = getInstance()->as<VulkanInstance>();
-			MINTE_VK_ASSERT(pInstance->getDeviceTable().vkCreateRenderPass(pInstance->getLogicalDevice(), &renderPassCreateInfo, nullptr, &m_RenderPass), "Failed to create render pass!");
+			MINTE_VK_ASSERT(pInstance->getDeviceTable().vkCreateRenderPass(pInstance->getLogicalDevice(), &renderPassCreateInfo, VK_NULL_HANDLE, &m_RenderPass), "Failed to create render pass!");
 		}
 
 		void VulkanWindow::setupFramebuffer()
@@ -279,19 +307,19 @@ namespace minte
 			frameBufferCreateInfo.pAttachments = &m_SwapchainImageView;
 
 			const auto pInstance = getInstance()->as<VulkanInstance>();
-			MINTE_VK_ASSERT(pInstance->getDeviceTable().vkCreateFramebuffer(pInstance->getLogicalDevice(), &frameBufferCreateInfo, nullptr, &m_Framebuffer), "Failed to create the frame buffer!");
+			MINTE_VK_ASSERT(pInstance->getDeviceTable().vkCreateFramebuffer(pInstance->getLogicalDevice(), &frameBufferCreateInfo, VK_NULL_HANDLE, &m_Framebuffer), "Failed to create the frame buffer!");
 		}
 
 		void VulkanWindow::setupSyncObjects()
 		{
 			VkSemaphoreCreateInfo createInfo = {};
 			createInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-			createInfo.pNext = nullptr;
+			createInfo.pNext = VK_NULL_HANDLE;
 			createInfo.flags = 0;
 
 			const auto pInstance = getInstance()->as<VulkanInstance>();
-			MINTE_VK_ASSERT(pInstance->getDeviceTable().vkCreateSemaphore(pInstance->getLogicalDevice(), &createInfo, nullptr, &m_InFlightSemaphore), "Failed to create the in flight semaphore!");
-			MINTE_VK_ASSERT(pInstance->getDeviceTable().vkCreateSemaphore(pInstance->getLogicalDevice(), &createInfo, nullptr, &m_RenderFinishedSemaphore), "Failed to create the render finished semaphore!");
+			MINTE_VK_ASSERT(pInstance->getDeviceTable().vkCreateSemaphore(pInstance->getLogicalDevice(), &createInfo, VK_NULL_HANDLE, &m_InFlightSemaphore), "Failed to create the in flight semaphore!");
+			MINTE_VK_ASSERT(pInstance->getDeviceTable().vkCreateSemaphore(pInstance->getLogicalDevice(), &createInfo, VK_NULL_HANDLE, &m_RenderFinishedSemaphore), "Failed to create the render finished semaphore!");
 		}
 	}
 }

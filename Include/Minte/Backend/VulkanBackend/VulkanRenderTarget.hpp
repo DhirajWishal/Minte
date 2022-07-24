@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "Backend/RenderTarget.hpp"
+#include "../RenderTarget.hpp"
 #include "VulkanInstance.hpp"
 
 namespace minte
@@ -24,9 +24,6 @@ namespace minte
 
 				VmaAllocation m_ImageAllocation = nullptr;
 				VkImageLayout m_CurrentLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-
-				VkBuffer m_Buffer = VK_NULL_HANDLE;
-				VmaAllocation m_BufferAllocation = nullptr;
 			};
 
 		public:

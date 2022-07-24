@@ -18,7 +18,7 @@ add_executable(
 )
 
 # Add the optick static library as a target link.
-target_link_libraries(MinteTests Minte)
+target_link_libraries(MinteTests Minte MinteVulkanBackend)
 
 # Make sure to specify the C++ standard to C++20.
 set_property(TARGET MinteTests PROPERTY CXX_STANDARD 20)

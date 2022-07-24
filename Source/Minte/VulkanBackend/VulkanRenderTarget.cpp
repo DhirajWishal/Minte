@@ -1,7 +1,8 @@
 // Copyright (c) 2022 Dhiraj Wishal
 
-#include "VulkanBackend/VulkanRenderTarget.hpp"
-#include "VulkanBackend/VulkanMacros.hpp"
+#include "Minte/Backend/VulkanBackend/VulkanRenderTarget.hpp"
+#include "Minte/Backend/VulkanBackend/VulkanMacros.hpp"
+#include "Minte/Backend/VulkanBackend/VulkanImageBuffer.hpp"
 
 #include <array>
 
@@ -36,10 +37,23 @@ namespace minte
 		VulkanRenderTarget::VulkanRenderTarget(const std::shared_ptr<VulkanInstance>& pInstance, uint32_t width, uint32_t height, AntiAliasing antiAliasing /*= AntiAliasing::X1*/)
 			: backend::RenderTarget(pInstance, width, height, antiAliasing)
 		{
+			// Create the attachments.
 			m_ColorAttachment = createAttachment(VK_FORMAT_R8G8B8A8_UNORM, GetSampleCount(antiAliasing), VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT);
 			m_EntityAttachment = createAttachment(VK_FORMAT_R32_SFLOAT, GetSampleCount(antiAliasing), VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT);
 			m_DepthAttachment = createAttachment(VK_FORMAT_D16_UNORM, GetSampleCount(antiAliasing), VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_ASPECT_DEPTH_BIT);
 
+			// Setup the buffers.
+			VkMemoryRequirements imageMemoryRequirements = {};
+			vkGetImageMemoryRequirements(pInstance->getLogicalDevice(), m_ColorAttachment.m_Image, &imageMemoryRequirements);
+			setColorBuffer(std::make_unique<VulkanImageBuffer>(pInstance, imageMemoryRequirements.size));
+
+			vkGetImageMemoryRequirements(pInstance->getLogicalDevice(), m_EntityAttachment.m_Image, &imageMemoryRequirements);
+			setEntityBuffer(std::make_unique<VulkanImageBuffer>(pInstance, imageMemoryRequirements.size));
+
+			vkGetImageMemoryRequirements(pInstance->getLogicalDevice(), m_DepthAttachment.m_Image, &imageMemoryRequirements);
+			setDepthBuffer(std::make_unique<VulkanImageBuffer>(pInstance, imageMemoryRequirements.size));
+
+			// Setup the rest.
 			setupRenderPass();
 			setupFramebuffer();
 			setupCommandBuffer();
@@ -72,7 +86,7 @@ namespace minte
 			MINTE_VK_ASSERT(pInstance->getDeviceTable().vkBeginCommandBuffer(m_CommandBuffer, &beginInfo), "Failed to begin command buffer!");
 
 			// Setup the clear colors.
-			std::array<VkClearValue, 3> clearColors;
+			std::array<VkClearValue, 3> clearColors = {};
 			clearColors[0].color.float32[0] = 0.0f;
 			clearColors[0].color.float32[1] = 0.0f;
 			clearColors[0].color.float32[2] = 0.0f;
@@ -105,12 +119,6 @@ namespace minte
 			pInstance->getDeviceTable().vkCmdEndRenderPass(m_CommandBuffer);
 
 			// Copy the color, depth and picking images to the buffers.
-			// First, change the image layout.
-			pInstance->changeImageLayout(m_CommandBuffer, m_ColorAttachment.m_Image, m_ColorAttachment.m_CurrentLayout, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT);
-			pInstance->changeImageLayout(m_CommandBuffer, m_EntityAttachment.m_Image, m_EntityAttachment.m_CurrentLayout, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_ASPECT_COLOR_BIT);
-			pInstance->changeImageLayout(m_CommandBuffer, m_DepthAttachment.m_Image, m_DepthAttachment.m_CurrentLayout, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_ASPECT_DEPTH_BIT);
-
-			// Perform the copy.
 			VkBufferImageCopy imageCopy = {};
 			imageCopy.imageExtent = { getWidth(), getHeight(), 1 };
 			imageCopy.imageOffset = { 0, 0, 0 };
@@ -122,21 +130,13 @@ namespace minte
 			imageCopy.bufferRowLength = getWidth();
 
 			imageCopy.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-			pInstance->getDeviceTable().vkCmdCopyImageToBuffer(m_CommandBuffer, m_ColorAttachment.m_Image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, m_ColorAttachment.m_Buffer, 1, &imageCopy);
-			pInstance->getDeviceTable().vkCmdCopyImageToBuffer(m_CommandBuffer, m_EntityAttachment.m_Image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, m_EntityAttachment.m_Buffer, 1, &imageCopy);
+			pInstance->getDeviceTable().vkCmdCopyImageToBuffer(m_CommandBuffer, m_ColorAttachment.m_Image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, getColorBuffer()->as<VulkanImageBuffer>()->getBuffer(), 1, &imageCopy);
+
+			imageCopy.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+			pInstance->getDeviceTable().vkCmdCopyImageToBuffer(m_CommandBuffer, m_EntityAttachment.m_Image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, getEntityBuffer()->as<VulkanImageBuffer>()->getBuffer(), 1, &imageCopy);
 
 			imageCopy.imageSubresource.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
-			pInstance->getDeviceTable().vkCmdCopyImageToBuffer(m_CommandBuffer, m_DepthAttachment.m_Image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, m_DepthAttachment.m_Buffer, 1, &imageCopy);
-
-			// Change them back to how they were.
-			pInstance->changeImageLayout(m_CommandBuffer, m_ColorAttachment.m_Image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_IMAGE_ASPECT_COLOR_BIT);
-			pInstance->changeImageLayout(m_CommandBuffer, m_EntityAttachment.m_Image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_IMAGE_ASPECT_COLOR_BIT);
-			pInstance->changeImageLayout(m_CommandBuffer, m_DepthAttachment.m_Image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, VK_IMAGE_ASPECT_DEPTH_BIT);
-
-			// Set the correct layouts.
-			m_ColorAttachment.m_CurrentLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-			m_EntityAttachment.m_CurrentLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-			m_DepthAttachment.m_CurrentLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
+			pInstance->getDeviceTable().vkCmdCopyImageToBuffer(m_CommandBuffer, m_DepthAttachment.m_Image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, getDepthBuffer()->as<VulkanImageBuffer>()->getBuffer(), 1, &imageCopy);
 
 			// End the command buffer.
 			MINTE_VK_ASSERT(pInstance->getDeviceTable().vkEndCommandBuffer(m_CommandBuffer), "Failed to end command buffer!");
@@ -163,8 +163,8 @@ namespace minte
 		void VulkanRenderTarget::setupRenderPass()
 		{
 			// Resolve attachments.
-			std::array<VkAttachmentReference, 3> attachmentReferences;
-			std::array<VkAttachmentDescription, 3> attachmentDescriptions;
+			std::array<VkAttachmentReference, 3> attachmentReferences = {};
+			std::array<VkAttachmentDescription, 3> attachmentDescriptions = {};
 
 			// Color attachment.
 			attachmentDescriptions[0].flags = 0;
@@ -175,7 +175,7 @@ namespace minte
 			attachmentDescriptions[0].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 			attachmentDescriptions[0].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 			attachmentDescriptions[0].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-			attachmentDescriptions[0].finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+			attachmentDescriptions[0].finalLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
 
 			attachmentReferences[0].attachment = 0;
 			attachmentReferences[0].layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
@@ -189,7 +189,7 @@ namespace minte
 			attachmentDescriptions[1].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 			attachmentDescriptions[1].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 			attachmentDescriptions[1].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-			attachmentDescriptions[1].finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+			attachmentDescriptions[1].finalLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
 
 			attachmentReferences[1].attachment = 1;
 			attachmentReferences[1].layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
@@ -203,13 +203,13 @@ namespace minte
 			attachmentDescriptions[2].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 			attachmentDescriptions[2].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 			attachmentDescriptions[2].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-			attachmentDescriptions[2].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
+			attachmentDescriptions[2].finalLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
 
 			attachmentReferences[2].attachment = 2;
 			attachmentReferences[2].layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
 			// Create the subpass dependencies.
-			std::array<VkSubpassDependency, 2> subpassDependencies;
+			std::array<VkSubpassDependency, 2> subpassDependencies = {};
 			subpassDependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
 			subpassDependencies[0].dstSubpass = 0;
 			subpassDependencies[0].srcStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
@@ -314,23 +314,7 @@ namespace minte
 			VkMemoryRequirements imageMemoryRequirements = {};
 			vkGetImageMemoryRequirements(pInstance->getLogicalDevice(), attachment.m_Image, &imageMemoryRequirements);
 
-			// Create the copy buffer.
-			VkBufferCreateInfo createInfo = {};
-			createInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-			createInfo.pNext = VK_NULL_HANDLE;
-			createInfo.flags = 0;
-			createInfo.size = imageMemoryRequirements.size;
-			createInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-			createInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-			createInfo.queueFamilyIndexCount = 0;
-			createInfo.pQueueFamilyIndices = VK_NULL_HANDLE;
-
-			VmaAllocationCreateInfo bufferAllocationCreateInfo = {};
-			bufferAllocationCreateInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
-			bufferAllocationCreateInfo.usage = VMA_MEMORY_USAGE_AUTO_PREFER_HOST;
-
-			MINTE_VK_ASSERT(vmaCreateBuffer(pInstance->getAllocator(), &createInfo, &bufferAllocationCreateInfo, &attachment.m_Buffer, &attachment.m_BufferAllocation, VK_NULL_HANDLE), "Failed to create the buffer!");
-
+			attachment.m_CurrentLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
 			return attachment;
 		}
 
@@ -339,7 +323,6 @@ namespace minte
 			const auto pInstance = getInstance()->as<VulkanInstance>();
 
 			vmaDestroyImage(pInstance->getAllocator(), attachment.m_Image, attachment.m_ImageAllocation);
-			vmaDestroyBuffer(pInstance->getAllocator(), attachment.m_Buffer, attachment.m_BufferAllocation);
 			pInstance->getDeviceTable().vkDestroyImageView(pInstance->getLogicalDevice(), attachment.m_ImageView, VK_NULL_HANDLE);
 		}
 

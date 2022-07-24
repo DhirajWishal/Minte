@@ -10,6 +10,17 @@
 namespace minte
 {
 	/**
+	 * Layer output structure.
+	 * This contains the layer's rendered output.
+	 */
+	struct LayerOutput final
+	{
+		const backend::ImageBuffer* m_pColorBuffer = nullptr;
+		const backend::ImageBuffer* m_pEntityBuffer = nullptr;
+		const backend::ImageBuffer* m_pDepthBuffer = nullptr;
+	};
+
+	/**
 	 * Layer class.
 	 * This class contains a single image which can be retrieved after drawing.
 	 */
@@ -25,10 +36,9 @@ namespace minte
 		 * Explicit constructor.
 		 *
 		 * @param parent The parent of this class.
-		 * @param width The width of the rectangle.
-		 * @param height The height of the rectangle.
+		 * @param pRenderTarget The render target to render the layer with.
 		 */
-		explicit Layer(Minte parent, uint32_t width, uint32_t height);
+		explicit Layer(Minte parent, std::unique_ptr<backend::RenderTarget>&& pRenderTarget);
 
 		/**
 		 * Default virtual destructor.
@@ -57,11 +67,12 @@ namespace minte
 		/**
 		 * Update the layer.
 		 * This will first draw all the UI elements and then handle inputs.
+		 *
+		 * @return The rendered images.
 		 */
-		void update();
+		[[nodiscard]] LayerOutput update();
 
 	private:
-		Rectangle2D m_Rectangle = {};
 		std::unique_ptr<backend::RenderTarget> m_pRenderTarget = nullptr;
 	};
 }
